@@ -1,0 +1,131 @@
+# ============================================================
+# Docker Compose — продакшен-конфигурация AI Telegram Bot
+#
+# Сервисы:
+#   bot      — FastAPI + aiogram (Webhook)
+#   postgres — PostgreSQL 15 (основная БД)
+#   redis    — Redis 7 (FSM storage для aiogram)
+#
+# Запуск:
+#   docker compose up -d --build
+#
+# Логи:
+#   docker compose logs -f bot
+# ============================================================
+
+services:
+  # ── Приложение (бот) ───────────────────────────────────────
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - WHATSAPP_SERVICE_URL=http://whatsapp:3000/send
+    ports:
+      - "${BOT_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M                   # Запас для 1 async воркера (кушает ~80MB RAM)
+        reservations:
+          memory: 128M
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-bot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_bot}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_bot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - bot-network
+
+  # ── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ai-bot-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+        --maxmemory 128mb
+        --maxmemory-policy allkeys-lru
+        --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - bot-network
+
+  # ── WhatsApp Microservice ──────────────────────────────────
+  whatsapp:
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    container_name: ai-bot-whatsapp
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - WEBHOOK_URL=http://bot:8000/api/whatsapp/webhook
+    ports:
+      - "3000:3000"
+    volumes:
+      - whatsapp_data:/app/.wwebjs_auth
+      - ./data:/app/data
+    networks:
+      - bot-network
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+# ── Volumes ──────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  whatsapp_data:
+    driver: local
+
+# ── Network ──────────────────────────────────────────────────
+networks:
+  bot-network:
+    driver: bridge

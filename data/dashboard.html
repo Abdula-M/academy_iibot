@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дашборд — Академия СКФО Бот</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #1e2231;
+            --bg-hover: #252a3a;
+            --bg-msg-bot: #2a2e3f;
+            --bg-msg-user: #1d4ed8;
+            --text-primary: #e4e6f0;
+            --text-secondary: #8b8fa3;
+            --text-muted: #5c6078;
+            --accent-blue: #4f8ff7;
+            --accent-green: #34d399;
+            --accent-purple: #a78bfa;
+            --accent-orange: #fb923c;
+            --border: #2a2e3f;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --header-height: 60px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Header ─────────────────────────────────── */
+        .header {
+            height: var(--header-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 24px;
+            font-size: 13px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-val {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 4px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ── Layout ─────────────────────────────────── */
+        .app-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - var(--header-height));
+            overflow: hidden;
+        }
+
+        /* ── Sidebar (Users List) ────────────────────── */
+        .sidebar {
+            width: 350px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .users-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .users-list::-webkit-scrollbar { width: 6px; }
+        .users-list::-webkit-scrollbar-track { background: transparent; }
+        .users-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .user-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+            position: relative;
+        }
+
+        .user-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .user-item.active {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--accent-blue);
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .user-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .user-preview {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-badge {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: var(--border);
+            color: var(--text-primary);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* ── Chat Area ──────────────────────────────── */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .chat-header-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .msg-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+        }
+
+        .msg-wrapper.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-wrapper.bot {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .msg-wrapper.user .msg-bubble {
+            background: var(--bg-msg-user);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-wrapper.bot .msg-bubble {
+            background: var(--bg-msg-bot);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ── Empty states / Loading ─────────────────── */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Форматирование HTML внутри ответа бота */
+        .msg-bubble b { font-weight: 600; color: #fff; }
+        .msg-bubble i { font-style: italic; opacity: 0.9; }
+
+        /* ── Modal ──────────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.open {
+            opacity: 1; pointer-events: auto;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            width: 420px;
+            text-align: center;
+            box-shadow: 0 10px 25px var(--shadow);
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px; right: 12px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 20px;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--text-primary); }
+        #qr-container {
+            margin: 20px auto 0;
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .wa-status-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            transition: background 0.15s;
+        }
+        .wa-status-btn:hover { background: var(--bg-hover); }
+        .wa-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .wa-dot.offline { background: #ef4444; }
+        .wa-dot.online { background: var(--accent-green); }
+        .wa-dot.qr { background: var(--accent-orange); }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.2s;
+        }
+        .btn-danger:hover {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-title">
+        <span class="icon">🏛</span>
+        Академия СКФО Бот
+    </div>
+    <div class="header-stats">
+        <button class="wa-status-btn" onclick="openWaModal()">
+            <div class="wa-dot offline" id="wa-dot"></div>
+            WhatsApp: <span id="wa-status-text">OFFLINE</span>
+        </button>
+        <div class="stat-item" style="margin-left: 12px;">
+            <span class="stat-label">Всего пользователей:</span>
+            <span class="stat-val" id="total-users">-</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Активных сегодня:</span>
+            <span class="stat-val" id="today-users">-</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Сообщений сегодня:</span>
+            <span class="stat-val" id="today-messages">-</span>
+        </div>
+        <div class="stat-item" style="margin-left: 16px;">
+            <div class="status-dot"></div>
+            <span class="stat-label" id="last-update">Обновлено</span>
+        </div>
+    </div>
+</header>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            Диалоги
+        </div>
+        <div class="users-list" id="users-list">
+            <div class="loading"><div class="spinner"></div>Загрузка...</div>
+        </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="chat-area">
+        <div class="chat-header" id="chat-header" style="display: none;">
+            <div>
+                <div class="chat-header-title" id="chat-title">@username</div>
+                <div class="chat-header-sub" id="chat-sub">telegram_id</div>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="empty-state">
+                <div class="icon">💬</div>
+                <div>Выберите диалог слева,<br>чтобы просмотреть историю сообщений</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="wa-modal" onclick="if(event.target===this) closeWaModal()">
+    <div class="modal-content">
+        <div class="modal-close" onclick="closeWaModal()">&times;</div>
+        <h3 style="margin-bottom: 8px;">WhatsApp Подключение</h3>
+        <p id="wa-modal-desc" style="font-size: 13px; color: var(--text-secondary);">
+            Загрузка статуса...
+        </p>
+        <div id="qr-container"></div>
+        <button id="wa-logout-btn" class="btn-danger" style="display: none;" onclick="logoutWa()">Отвязать WhatsApp</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE = window.location.origin;
+    let currentSelectedUserId = null;
+    let autoRefreshInterval = null;
+
+    // ── Утилиты ─────────────────────────────────────────
+    function formatTime(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDate(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        const now = new Date();
+        if (date.toDateString() === now.toDateString()) return formatTime(isoString);
+        return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + formatTime(isoString);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatBotAnswer(htmlText) {
+        // Простая санация, чтобы разрешить только <b>, <i>, <br>
+        // В реальном проекте лучше использовать DOMPurify
+        let text = htmlText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        text = text.replace(/&lt;b&gt;/g, '<b>').replace(/&lt;\/b&gt;/g, '</b>');
+        text = text.replace(/&lt;i&gt;/g, '<i>').replace(/&lt;\/i&gt;/g, '</i>');
+        text = text.replace(/\n/g, '<br>');
+        return text;
+    }
+
+    // ── API Вызовы ──────────────────────────────────────
+    async function loadStats() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/stats`);
+            const data = await resp.json();
+            document.getElementById('total-users').textContent = data.total_users;
+            document.getElementById('today-users').textContent = data.today_users;
+            document.getElementById('today-messages').textContent = data.today_messages;
+            
+            const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('last-update').textContent = `Обновлено в ${now}`;
+        } catch (err) {
+            console.error('Ошибка загрузки статистики', err);
+        }
+    }
+
+    async function loadUsersList() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/users`);
+            const users = await resp.json();
+            const listEl = document.getElementById('users-list');
+
+            if (users.length === 0) {
+                listEl.innerHTML = '<div class="empty-state" style="padding: 20px; font-size: 13px;">Нет данных</div>';
+                return;
+            }
+
+            listEl.innerHTML = users.map(user => `
+                <div class="user-item ${currentSelectedUserId === user.telegram_id ? 'active' : ''}" 
+                     onclick="selectUser(${user.telegram_id}, '${escapeHtml(user.username)}')">
+                    <div class="user-header">
+                        <div class="user-name">@${escapeHtml(user.username)}</div>
+                        <div class="user-time">${formatDate(user.last_time)}</div>
+                    </div>
+                    <div class="user-preview">${escapeHtml(user.last_question)}</div>
+                    <div class="user-badge">${user.msg_count}</div>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error('Ошибка загрузки списка пользователей', err);
+        }
+    }
+
+    async function loadUserMessages(telegramId) {
+        try {
+            const chatEl = document.getElementById('chat-messages');
+            
+            // Если только переключились на пользователя, показываем загрузку
+            if (chatEl.dataset.loadingId !== String(telegramId)) {
+                chatEl.dataset.loadingId = telegramId;
+                chatEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            }
+
+            const resp = await fetch(`${API_BASE}/api/messages/${telegramId}`);
+            const messages = await resp.json();
+
+            // Проверяем, не переключился ли пользователь во время загрузки
+            if (currentSelectedUserId !== telegramId) return;
+
+            let html = '';
+            messages.forEach(msg => {
+                // Вопрос пользователя
+                html += `
+                    <div class="msg-wrapper user">
+                        <div class="msg-bubble">${escapeHtml(msg.question)}</div>
+                        <div class="msg-time">${formatDate(msg.created_at)}</div>
+                    </div>
+                `;
+                // Ответ бота
+                html += `
+                    <div class="msg-wrapper bot">
+                        <div class="msg-bubble">${formatBotAnswer(msg.answer)}</div>
+                        <div class="msg-time">Ассистент</div>
+                    </div>
+                `;
+            });
+
+            // Определяем, нужно ли прокручивать вниз (если скролл был в самом низу)
+            const isScrolledToBottom = chatEl.scrollHeight - chatEl.clientHeight <= chatEl.scrollTop + 50;
+
+            chatEl.innerHTML = html || '<div class="empty-state">Нет сообщений</div>';
+
+            // Если только загрузили или были внизу - скроллим вниз
+            if (chatEl.dataset.loadingId === String(telegramId) || isScrolledToBottom) {
+                 chatEl.scrollTop = chatEl.scrollHeight;
+                 delete chatEl.dataset.loadingId;
+            }
+
+        } catch (err) {
+            console.error('Ошибка загрузки сообщений чата', err);
+            document.getElementById('chat-messages').innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
+        }
+    }
+
+    // ── Действия ────────────────────────────────────────
+    window.selectUser = function(telegramId, username) {
+        currentSelectedUserId = telegramId;
+        
+        // Обновляем заголовок чата
+        document.getElementById('chat-header').style.display = 'flex';
+        document.getElementById('chat-title').textContent = `@${username}`;
+        document.getElementById('chat-sub').textContent = `ID: ${telegramId}`;
+
+        // Подсвечиваем в списке
+        document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+        const target = Array.from(document.querySelectorAll('.user-item')).find(el => el.getAttribute('onclick').includes(telegramId));
+        if (target) target.classList.add('active');
+
+        // Загружаем сообщения
+        loadUserMessages(telegramId);
+    };
+
+    // ── WhatsApp ─────────────────────────────────────────
+    let isWaModalOpen = false;
+    let lastQrString = '';
+
+    function openWaModal() {
+        isWaModalOpen = true;
+        document.getElementById('wa-modal').classList.add('open');
+        checkWaStatus();
+    }
+    
+    function closeWaModal() {
+        isWaModalOpen = false;
+        document.getElementById('wa-modal').classList.remove('open');
+    }
+
+    async function checkWaStatus() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/whatsapp/status`);
+            const data = await resp.json();
+            
+            const dot = document.getElementById('wa-dot');
+            const text = document.getElementById('wa-status-text');
+            const desc = document.getElementById('wa-modal-desc');
+            const qrContainer = document.getElementById('qr-container');
+            const logoutBtn = document.getElementById('wa-logout-btn');
+
+            dot.className = 'wa-dot';
+            
+            if (data.status === 'READY' || data.status === 'AUTHENTICATED') {
+                dot.classList.add('online');
+                text.textContent = 'Подключено';
+                desc.textContent = 'WhatsApp успешно подключен и работает!';
+                qrContainer.innerHTML = '<div style="font-size: 40px; margin: 20px;">✅</div>';
+                logoutBtn.style.display = 'inline-block';
+                lastQrString = '';
+            } else if (data.status === 'QR_READY') {
+                dot.classList.add('qr');
+                text.textContent = 'Скан QR';
+                desc.textContent = 'Откройте WhatsApp -> Связанные устройства и отсканируйте код';
+                logoutBtn.style.display = 'none';
+                
+                if (isWaModalOpen && data.qr && data.qr !== lastQrString) {
+                    qrContainer.innerHTML = '';
+                    new QRCode(qrContainer, {
+                        text: data.qr,
+                        width: 320,
+                        height: 320,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                    });
+                    lastQrString = data.qr;
+                }
+            } else {
+                dot.classList.add('offline');
+                text.textContent = 'Инициализация';
+                desc.textContent = 'Сервис WhatsApp сейчас запускается... Подождите пару минут.';
+                qrContainer.innerHTML = '';
+                logoutBtn.style.display = 'none';
+                lastQrString = '';
+            }
+        } catch (e) {
+            document.getElementById('wa-dot').className = 'wa-dot offline';
+            document.getElementById('wa-status-text').textContent = 'OFFLINE';
+            document.getElementById('wa-modal-desc').textContent = 'Ошибка подключения к серверу.';
+            document.getElementById('qr-container').innerHTML = '';
+            document.getElementById('wa-logout-btn').style.display = 'none';
+            lastQrString = '';
+        }
+    }
+
+    async function logoutWa() {
+        if (!confirm('Вы уверены, что хотите отвязать WhatsApp?')) return;
+        
+        try {
+            const btn = document.getElementById('wa-logout-btn');
+            btn.textContent = 'Отвязываем...';
+            btn.disabled = true;
+            
+            await fetch(`${API_BASE}/api/whatsapp/logout`, { method: 'POST' });
+            
+            setTimeout(() => {
+                btn.textContent = 'Отвязать WhatsApp';
+                btn.disabled = false;
+                checkWaStatus();
+            }, 2000);
+            
+        } catch (err) {
+            alert('Ошибка при отвязке WhatsApp');
+        }
+    }
+
+    // ── Жизненный цикл ──────────────────────────────────
+    async function init() {
+        await Promise.all([loadStats(), loadUsersList()]);
+        checkWaStatus();
+        
+        // Автообновление данных (каждые 10 минут)
+        autoRefreshInterval = setInterval(async () => {
+            await Promise.all([loadStats(), loadUsersList()]);
+            if (currentSelectedUserId) {
+                await loadUserMessages(currentSelectedUserId);
+            }
+        }, 600000);
+        
+        // Автообновление QR-кода (каждые 3 секунды)
+        setInterval(() => {
+            if (isWaModalOpen) {
+                checkWaStatus();
+            }
+        }, 3000);
+    }
+
+    init();
+</script>
+
+</body>
+</html>

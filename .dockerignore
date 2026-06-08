@@ -1,0 +1,30 @@
+# Исключаем ненужные файлы из Docker build context
+# Ускоряет сборку и уменьшает размер контекста
+
+.git
+.gitignore
+.env
+.env.example
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# Data (монтируется как volume)
+chroma_data/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Docs
+*.md
+LICENSE
