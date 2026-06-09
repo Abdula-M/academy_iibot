@@ -39,8 +39,6 @@ services:
       - DEBUG=${DEBUG:-false}
     ports:
       - "${BOT_PORT:-8000}:8000"
-    volumes:
-      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,7 +114,6 @@ services:
       - "3000:3000"
     volumes:
       - whatsapp_data:/app/.wwebjs_auth
-      - ./data:/app/data
     networks:
       - bot-network
     shm_size: 256mb
