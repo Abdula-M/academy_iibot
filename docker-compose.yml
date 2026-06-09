@@ -101,9 +101,9 @@ services:
   # ── WhatsApp Microservice ──────────────────────────────────
   whatsapp:
     build:
-      context: ./whatsapp/microservice
-      dockerfile: Dockerfile
-    image: ai-whatsapp-image:v2
+      context: .
+      dockerfile: whatsapp/microservice/Dockerfile
+    image: ai-whatsapp-image:v3
     container_name: ai-bot-whatsapp
     restart: unless-stopped
     # env_file: .env

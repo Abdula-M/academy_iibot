@@ -14,11 +14,15 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 WORKDIR /app
 
 # Копируем package.json и устанавливаем зависимости
-COPY package*.json ./
+COPY whatsapp/microservice/package*.json ./
 RUN npm install
 
-# Копируем исходный код и собираем
-COPY . .
+# Копируем исходный код микросервиса и собираем
+COPY whatsapp/microservice/ .
+
+# Копируем базу данных медиа из корня проекта
+COPY data/ ./data/
+
 RUN npm run build
 
 EXPOSE 3000

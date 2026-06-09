@@ -95,6 +95,10 @@ async def process_ai_query(
         if photo_path is not None:
             photo_str_path = str(photo_path)
             sent_photos.add(photo_path.stem)
+            
+        # Отменяем фото, если есть PDF (API шлет либо одно, либо другое, PDF важнее)
+        if document_str_path is not None:
+            photo_str_path = None
 
         return AIResponse(text=answer, photo_path=photo_str_path, document_path=document_str_path), updated_history, sent_photos
 
