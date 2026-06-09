@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ai-bot-image:v2
+    image: ai-bot-image:v3
     container_name: ai-bot
     restart: unless-stopped
     # env_file: .env

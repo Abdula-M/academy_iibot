@@ -14,7 +14,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # ── Базовая директория с фотографиями ─────────────────────────
-_PHOTOS_DIR = Path(__file__).resolve().parent.parent / "data" / "photos"
+_PHOTOS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "photos"
 
 # ── Допустимые расширения файлов ──────────────────────────────
 _ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
