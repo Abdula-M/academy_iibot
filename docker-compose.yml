@@ -121,6 +121,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+  caddy:
+    image: caddy:2-alpine
+    container_name: ai-bot-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - bot-network
+
 # ── Volumes ──────────────────────────────────────────────────
 volumes:
   postgres_data:
@@ -128,6 +142,10 @@ volumes:
   redis_data:
     driver: local
   whatsapp_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 
 # ── Network ──────────────────────────────────────────────────
