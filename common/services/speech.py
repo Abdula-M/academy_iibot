@@ -8,14 +8,10 @@ from common.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Загружаем прокси из .env (если есть), иначе используем жестко заданный
-PROXY_URL = "http://x3kP8n:QD1p0R@196.18.227.129:8000"
-
 # Используем официальный клиент OpenAI, но направляем его на API Groq
 _groq_client = AsyncOpenAI(
     api_key=settings.groq_api_key.get_secret_value(),
     base_url="https://api.groq.com/openai/v1",
-    http_client=httpx.AsyncClient(proxy=PROXY_URL)
 )
 
 async def transcribe_audio(audio_data: bytes) -> str | None:

@@ -21,7 +21,6 @@ class Settings(BaseSettings):
 
     # ── Telegram ─────────────────────────────────────────────
     bot_token: SecretStr
-    telegram_proxy: str = ""
     telegram_api_server: str = ""
 
     # ── Webhook ──────────────────────────────────────────────

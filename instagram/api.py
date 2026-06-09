@@ -67,8 +67,7 @@ async def send_instagram_message(recipient_id: str, text: str):
     try:
         session = await get_http_session()
         timeout = aiohttp.ClientTimeout(total=30)
-        proxy = settings.telegram_proxy or None
-        async with session.post(url, json=payload, timeout=timeout, proxy=proxy) as resp:
+        async with session.post(url, json=payload, timeout=timeout) as resp:
             if resp.status != 200:
                 error_data = await resp.text()
                 logger.error("Ошибка при отправке сообщения в Instagram: %s", error_data)

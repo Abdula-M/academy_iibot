@@ -46,14 +46,6 @@ async function startWhatsApp() {
         '--disable-gpu'
     ];
     
-    const proxyUrl = process.env.TELEGRAM_PROXY;
-    if (proxyUrl) {
-        console.log('Используем прокси для WhatsApp:', proxyUrl);
-        const proxyChain = await Function('return import("proxy-chain")')();
-        const newProxyUrl = await proxyChain.anonymizeProxy(proxyUrl);
-        puppeteerArgs.push(`--proxy-server=${newProxyUrl}`);
-    }
-
     client = new Client({
         authStrategy: new LocalAuth(),
         puppeteer: {
