@@ -21,9 +21,21 @@ services:
       dockerfile: Dockerfile
     container_name: ai-bot
     restart: unless-stopped
-    env_file: .env
+    # env_file: .env
     environment:
-      - WHATSAPP_SERVICE_URL=http://whatsapp:3000/send
+      - BOT_TOKEN=${BOT_TOKEN}
+      - USE_WEBHOOK=${USE_WEBHOOK:-false}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - WHATSAPP_SERVICE_URL=${WHATSAPP_SERVICE_URL:-http://whatsapp:3000/send}
+      - INSTAGRAM_VERIFY_TOKEN=${INSTAGRAM_VERIFY_TOKEN}
+      - INSTAGRAM_ACCESS_TOKEN=${INSTAGRAM_ACCESS_TOKEN}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TELEGRAM_PROXY=${TELEGRAM_PROXY}
+      - DEBUG=${DEBUG:-false}
     ports:
       - "${BOT_PORT:-8000}:8000"
     volumes:
@@ -94,9 +106,10 @@ services:
       dockerfile: Dockerfile
     container_name: ai-bot-whatsapp
     restart: unless-stopped
-    env_file: .env
+    # env_file: .env
     environment:
       - WEBHOOK_URL=http://bot:8000/api/whatsapp/webhook
+      - TELEGRAM_PROXY=${TELEGRAM_PROXY}
     ports:
       - "3000:3000"
     volumes:
