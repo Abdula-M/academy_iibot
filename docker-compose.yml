@@ -125,26 +125,6 @@ services:
       start_period: 30s
     deploy:
       resources:
-        limits:
-          memory: 1G
-
-  # ── Caddy (Обратный прокси с авто-SSL) ─────────────────────
-  caddy:
-    image: caddy:2-alpine
-    container_name: ai-bot-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    command: caddy reverse-proxy --from academy-skfo.online --to http://bot:8000
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - bot
-    networks:
-      - bot-network
-
 # ── Volumes ──────────────────────────────────────────────────
 volumes:
   postgres_data:
@@ -152,10 +132,6 @@ volumes:
   redis_data:
     driver: local
   whatsapp_data:
-    driver: local
-  caddy_data:
-    driver: local
-  caddy_config:
     driver: local
 
 # ── Network ──────────────────────────────────────────────────
