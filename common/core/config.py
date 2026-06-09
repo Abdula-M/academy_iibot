@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # ── Telegram ─────────────────────────────────────────────
     bot_token: SecretStr
     telegram_api_server: str = ""
+    telegram_proxy: str = ""
 
     # ── Webhook ──────────────────────────────────────────────
     use_webhook: bool = False   # False → polling (для тестирования)

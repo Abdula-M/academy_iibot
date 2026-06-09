@@ -39,8 +39,8 @@ services:
 
   whatsapp:
     build:
-      context: ./whatsapp/microservice
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: whatsapp/microservice/Dockerfile
     container_name: ai-bot-whatsapp
     restart: unless-stopped
     env_file: .env

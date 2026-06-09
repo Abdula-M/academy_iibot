@@ -28,3 +28,9 @@ docker-compose.yml
 # Docs
 *.md
 LICENSE
+
+# Node.js
+**/node_modules
+**/.wwebjs_auth
+**/.wwebjs_cache
+
