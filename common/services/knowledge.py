@@ -5,7 +5,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Путь к файлу базы знаний относительно корня проекта
-KNOWLEDGE_FILE_PATH = Path(__file__).parent.parent / "data" / "knowledge.txt"
+KNOWLEDGE_FILE_PATH = Path(__file__).parent.parent.parent / "data" / "knowledge.txt"
 
 # Кэш
 _cached_context: str = ""

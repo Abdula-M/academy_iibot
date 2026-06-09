@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # ── WhatsApp ─────────────────────────────────────────────
     whatsapp_service_url: str = "http://localhost:3000/send"
 
+    # ── Instagram ────────────────────────────────────────────
+    instagram_verify_token: str = ""
+    instagram_access_token: SecretStr | None = None
+
     # ── PostgreSQL ───────────────────────────────────────────
     database_url: str  # asyncpg DSN, e.g. postgresql+asyncpg://user:pass@host/db
 

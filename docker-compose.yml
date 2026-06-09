@@ -90,7 +90,7 @@ services:
   # ── WhatsApp Microservice ──────────────────────────────────
   whatsapp:
     build:
-      context: ./whatsapp-service
+      context: ./whatsapp/microservice
       dockerfile: Dockerfile
     container_name: ai-bot-whatsapp
     restart: unless-stopped

@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 from openai import AsyncOpenAI
 
-from core.config import settings
+from common.core.config import settings
 
 logger = logging.getLogger(__name__)
 

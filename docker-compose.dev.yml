@@ -37,6 +37,31 @@ services:
       timeout: 5s
       retries: 5
 
+  whatsapp:
+    build:
+      context: ./whatsapp/microservice
+      dockerfile: Dockerfile
+    container_name: ai-bot-whatsapp
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - WEBHOOK_URL=http://host.docker.internal:8000/api/whatsapp/webhook
+    ports:
+      - "3001:3000"
+    volumes:
+      - whatsapp_data:/app/.wwebjs_auth
+      - ./data:/app/data
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   postgres_data:
   redis_data:
+  whatsapp_data:

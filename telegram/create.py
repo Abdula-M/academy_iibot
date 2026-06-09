@@ -12,7 +12,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.telegram import TelegramAPIServer
 
-from core.config import settings
+from common.core.config import settings
 
 # ── FSM-хранилище в Redis ────────────────────────────────────
 storage = RedisStorage.from_url(settings.redis_url)

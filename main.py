@@ -17,18 +17,19 @@ from aiogram.types import Update
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
-from bot.create import bot, dp
-from bot.handlers.user import router as user_router
-from api.whatsapp import whatsapp_router
-from core.config import settings
-from database.crud import (
+from telegram.create import bot, dp
+from telegram.handlers.user import router as user_router
+from whatsapp.api import whatsapp_router
+from instagram.api import instagram_router
+from common.core.config import settings
+from common.database.crud import (
     get_dashboard_stats,
     get_messages_by_user,
     get_recent_messages,
     get_users_list,
 )
-from database.models import Base
-from database.session import async_engine, async_session_factory
+from common.database.models import Base
+from common.database.session import async_engine, async_session_factory
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -101,6 +102,7 @@ app = FastAPI(
 )
 
 app.include_router(whatsapp_router)
+app.include_router(instagram_router)
 
 
 # ── Webhook endpoint (работает только в webhook-режиме) ──────

@@ -9,9 +9,9 @@ import logging
 import re
 from pathlib import Path
 
-from services.knowledge import get_knowledge_context
-from services.llm_client import LLMError, get_ai_response
-from services.photo_mapping import find_photo_for_query
+from common.services.knowledge import get_knowledge_context
+from common.services.llm_client import LLMError, get_ai_response
+from common.services.photo_mapping import find_photo_for_query
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ async def process_ai_query(
         if "[SEND_ACCREDITATION_PDF]" in answer:
             answer = answer.replace("[SEND_ACCREDITATION_PDF]", "").strip()
             # Путь к PDF файлу
-            pdf_path = Path(__file__).resolve().parent.parent / "data" / "Реестровая выписка.pdf"
+            pdf_path = Path(__file__).resolve().parent.parent.parent / "data" / "Реестровая выписка.pdf"
             if pdf_path.is_file():
                 document_str_path = str(pdf_path)
             else:

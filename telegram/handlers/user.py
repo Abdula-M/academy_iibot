@@ -19,10 +19,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, FSInputFile
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from database.crud import add_user, log_message
-from database.session import async_session_factory
-from services.bot_logic import process_ai_query
-from services.speech import transcribe_audio
+from common.database.crud import add_user, log_message
+from common.database.session import async_session_factory
+from common.services.bot_logic import process_ai_query
+from common.services.speech import transcribe_audio
 
 
 def get_main_keyboard() -> ReplyKeyboardMarkup:
@@ -243,8 +243,8 @@ async def _process_ai_query(
 
     # Логируем в БД
     try:
-        from database.crud import add_user, log_message
-        from database.session import async_session_factory
+        from common.database.crud import add_user, log_message
+        from common.database.session import async_session_factory
         async with async_session_factory() as session:
             user = await add_user(session, telegram_id=telegram_id, username=username)
             await log_message(session, user_id=user.id, telegram_id=telegram_id, question=user_query, answer=ai_response.text)

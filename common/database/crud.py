@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Message, User
+from common.database.models import Message, User
 
 
 async def add_user(

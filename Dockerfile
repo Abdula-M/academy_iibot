@@ -47,11 +47,10 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 
 # Копируем исходный код приложения и базу знаний
-COPY core/ ./core/
-COPY bot/ ./bot/
-COPY database/ ./database/
-COPY services/ ./services/
-COPY api/ ./api/
+COPY common/ ./common/
+COPY telegram/ ./telegram/
+COPY whatsapp/ ./whatsapp/
+COPY instagram/ ./instagram/
 COPY data/ ./data/
 COPY main.py .
 

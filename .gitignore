@@ -30,10 +30,10 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-whatsapp-service/node_modules/
-whatsapp-service/dist/
-whatsapp-service/.wwebjs_auth/
-whatsapp-service/.wwebjs_cache/
+whatsapp/microservice/node_modules/
+whatsapp/microservice/dist/
+whatsapp/microservice/.wwebjs_auth/
+whatsapp/microservice/.wwebjs_cache/
 
 # IDEs and Editors
 .idea/

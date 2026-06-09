@@ -12,11 +12,11 @@ from fastapi import APIRouter, BackgroundTasks
 import aiohttp
 from pydantic import BaseModel
 
-from core.config import settings
-from database.crud import add_user
-from database.session import async_session_factory
-from services.bot_logic import process_ai_query
-from services.speech import transcribe_audio
+from common.core.config import settings
+from common.database.crud import add_user
+from common.database.session import async_session_factory
+from common.services.bot_logic import process_ai_query
+from common.services.speech import transcribe_audio
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ async def _handle_whatsapp_message(msg: WhatsAppMessage):
     # Логируем сообщение
     if user_pk is not None:
         try:
-            from database.crud import log_message
+            from common.database.crud import log_message
             async with async_session_factory() as session:
                 await log_message(session, user_id=user_pk, telegram_id=user_id, question=user_query, answer=ai_response.text)
                 await session.commit()

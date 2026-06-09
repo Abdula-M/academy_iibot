@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 
 from openai import AsyncOpenAI, APIConnectionError, APIStatusError
 
-from core.config import settings
+from common.core.config import settings
 
 logger = logging.getLogger(__name__)
 
