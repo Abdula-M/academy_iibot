@@ -19,6 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ai-bot-image:v2
     container_name: ai-bot
     restart: unless-stopped
     # env_file: .env
@@ -104,6 +105,7 @@ services:
     build:
       context: ./whatsapp/microservice
       dockerfile: Dockerfile
+    image: ai-whatsapp-image:v2
     container_name: ai-bot-whatsapp
     restart: unless-stopped
     # env_file: .env
