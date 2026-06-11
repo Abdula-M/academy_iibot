@@ -1,6 +1,7 @@
 import logging
 import re
 from pathlib import Path
+import urllib.parse
 
 from fastapi import APIRouter, BackgroundTasks, Request, Response, HTTPException
 from fastapi.responses import FileResponse
@@ -54,11 +55,14 @@ def _get_public_file_url(file_path: str) -> str:
     Файлы раздаются через эндпоинт /api/instagram/media/<filename>.
     """
     filename = Path(file_path).name
+    # Кодируем имя файла для URL (пробелы -> %20, кириллица -> %D0...)
+    encoded_filename = urllib.parse.quote(filename)
+    
     # Определяем поддиректорию (photos или корень data)
     path_obj = Path(file_path)
     if "photos" in path_obj.parts:
-        return f"https://academy-skfo.online/api/instagram/media/photos/{filename}"
-    return f"https://academy-skfo.online/api/instagram/media/{filename}"
+        return f"https://academy-skfo.online/api/instagram/media/photos/{encoded_filename}"
+    return f"https://academy-skfo.online/api/instagram/media/{encoded_filename}"
 
 
 # ── Эндпоинт для раздачи медиафайлов ────────────────────────────
