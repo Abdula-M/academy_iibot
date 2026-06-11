@@ -1,6 +1,9 @@
 import logging
 import re
+from pathlib import Path
+
 from fastapi import APIRouter, BackgroundTasks, Request, Response, HTTPException
+from fastapi.responses import FileResponse
 import aiohttp
 
 from common.core.config import settings
@@ -19,6 +22,10 @@ _user_states: dict[int, dict] = {}
 # Глобальная сессия aiohttp для переиспользования
 _http_session: aiohttp.ClientSession | None = None
 
+# Базовая директория с данными (фото, документы)
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
 async def get_http_session() -> aiohttp.ClientSession:
     global _http_session
     if _http_session is None or _http_session.closed:
@@ -26,6 +33,53 @@ async def get_http_session() -> aiohttp.ClientSession:
     return _http_session
 
 
+def _get_graph_base_url() -> str:
+    """Определяет базовый URL Graph API в зависимости от типа токена.
+
+    IGAA-токены (Instagram Login) → graph.instagram.com
+    EAA-токены (Page Access Token) → graph.facebook.com
+    """
+    if not settings.instagram_access_token:
+        return "https://graph.facebook.com"
+    token = settings.instagram_access_token.get_secret_value()
+    if token.startswith("IGAA"):
+        return "https://graph.instagram.com"
+    return "https://graph.facebook.com"
+
+
+def _get_public_file_url(file_path: str) -> str:
+    """Формирует публичный URL для файла, доступный из интернета.
+
+    Файлы раздаются через эндпоинт /api/instagram/media/<filename>.
+    """
+    filename = Path(file_path).name
+    # Определяем поддиректорию (photos или корень data)
+    path_obj = Path(file_path)
+    if "photos" in path_obj.parts:
+        return f"https://academy-skfo.online/api/instagram/media/photos/{filename}"
+    return f"https://academy-skfo.online/api/instagram/media/{filename}"
+
+
+# ── Эндпоинт для раздачи медиафайлов ────────────────────────────
+@instagram_router.get("/media/photos/{filename}")
+async def serve_photo(filename: str):
+    """Раздача фотографий для Instagram API."""
+    file_path = _DATA_DIR / "photos" / filename
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+
+@instagram_router.get("/media/{filename}")
+async def serve_media(filename: str):
+    """Раздача документов (PDF и др.) для Instagram API."""
+    file_path = _DATA_DIR / filename
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
+
+
+# ── Верификация Webhook ──────────────────────────────────────────
 @instagram_router.get("/webhook")
 async def verify_webhook(request: Request):
     """
@@ -45,24 +99,9 @@ async def verify_webhook(request: Request):
     return Response(content="Hello", status_code=200)
 
 
-def _get_graph_base_url() -> str:
-    """Определяет базовый URL Graph API в зависимости от типа токена.
-
-    IGAA-токены (Instagram Login) → graph.instagram.com
-    EAA-токены (Page Access Token) → graph.facebook.com
-    """
-    if not settings.instagram_access_token:
-        return "https://graph.facebook.com"
-    token = settings.instagram_access_token.get_secret_value()
-    if token.startswith("IGAA"):
-        return "https://graph.instagram.com"
-    return "https://graph.facebook.com"
-
-
+# ── Отправка текстового сообщения ────────────────────────────────
 async def send_instagram_message(recipient_id: str, text: str):
-    """
-    Отправка сообщения обратно пользователю через Graph API.
-    """
+    """Отправка текстового сообщения пользователю через Graph API."""
     if not settings.instagram_access_token:
         logger.error("INSTAGRAM_ACCESS_TOKEN не установлен! Ответ не будет отправлен.")
         return
@@ -73,7 +112,7 @@ async def send_instagram_message(recipient_id: str, text: str):
     
     # Форматирование текста (Instagram не поддерживает HTML теги)
     ig_text = text
-    ig_text = re.sub(r'<[^>]+>', '', ig_text) # удаляем HTML теги
+    ig_text = re.sub(r'<[^>]+>', '', ig_text)  # удаляем HTML теги
     
     payload = {
         "recipient": {"id": recipient_id},
@@ -95,6 +134,88 @@ async def send_instagram_message(recipient_id: str, text: str):
         logger.error("Не удалось подключиться к Meta API: %s", e)
 
 
+# ── Отправка изображения ─────────────────────────────────────────
+async def send_instagram_image(recipient_id: str, image_path: str):
+    """Отправка изображения пользователю через Graph API по публичному URL."""
+    if not settings.instagram_access_token:
+        return
+
+    base_url = _get_graph_base_url()
+    token = settings.instagram_access_token.get_secret_value()
+    url = f"{base_url}/v25.0/me/messages?access_token={token}"
+
+    image_url = _get_public_file_url(image_path)
+
+    payload = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url
+                }
+            }
+        }
+    }
+
+    logger.info("Отправка фото в Instagram: %s", image_url)
+
+    try:
+        session = await get_http_session()
+        timeout = aiohttp.ClientTimeout(total=30)
+        async with session.post(url, json=payload, timeout=timeout) as resp:
+            if resp.status != 200:
+                error_data = await resp.text()
+                logger.error("Ошибка при отправке фото в Instagram: %s", error_data)
+            else:
+                logger.info("Фото успешно отправлено в Instagram пользователю %s", recipient_id)
+    except Exception as e:
+        logger.error("Не удалось отправить фото в Instagram: %s", e)
+
+
+# ── Отправка документа (PDF) ──────────────────────────────────────
+async def send_instagram_document(recipient_id: str, document_path: str):
+    """Отправка документа пользователю через Graph API.
+
+    Instagram поддерживает файлы как attachment типа 'file'.
+    """
+    if not settings.instagram_access_token:
+        return
+
+    base_url = _get_graph_base_url()
+    token = settings.instagram_access_token.get_secret_value()
+    url = f"{base_url}/v25.0/me/messages?access_token={token}"
+
+    file_url = _get_public_file_url(document_path)
+
+    payload = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "file",
+                "payload": {
+                    "url": file_url
+                }
+            }
+        }
+    }
+
+    logger.info("Отправка документа в Instagram: %s", file_url)
+
+    try:
+        session = await get_http_session()
+        timeout = aiohttp.ClientTimeout(total=30)
+        async with session.post(url, json=payload, timeout=timeout) as resp:
+            if resp.status != 200:
+                error_data = await resp.text()
+                logger.error("Ошибка при отправке документа в Instagram: %s", error_data)
+            else:
+                logger.info("Документ успешно отправлен в Instagram пользователю %s", recipient_id)
+    except Exception as e:
+        logger.error("Не удалось отправить документ в Instagram: %s", e)
+
+
+# ── Получение профиля пользователя ────────────────────────────────
 async def get_instagram_profile(sender_id: str) -> str | None:
     """Получает username пользователя Instagram по его ID через Graph API."""
     if not settings.instagram_access_token:
@@ -119,6 +240,7 @@ async def get_instagram_profile(sender_id: str) -> str | None:
     return None
 
 
+# ── Обработка входящего сообщения ─────────────────────────────────
 async def _handle_instagram_message(sender_id: str, text: str):
     """Фоновая задача обработки сообщения Instagram."""
     # Для Instagram ID (PSID/IGSID) — это большая строка из цифр.
@@ -175,8 +297,16 @@ async def _handle_instagram_message(sender_id: str, text: str):
         except Exception as e:
             logger.error("Ошибка логирования сообщения Instagram: %s", e)
     
-    # Отправляем ответ
+    # Отправляем текстовый ответ
     await send_instagram_message(sender_id, ai_response.text)
+
+    # Отправляем фото, если есть
+    if ai_response.photo_path is not None:
+        await send_instagram_image(sender_id, ai_response.photo_path)
+
+    # Отправляем документ (PDF), если есть
+    if ai_response.document_path is not None:
+        await send_instagram_document(sender_id, ai_response.document_path)
 
 
 @instagram_router.post("/webhook")
@@ -206,3 +336,4 @@ async def instagram_webhook(request: Request, background_tasks: BackgroundTasks)
         return Response(content="EVENT_RECEIVED", status_code=200)
     else:
         raise HTTPException(status_code=404, detail="Not Found")
+
