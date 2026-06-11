@@ -69,7 +69,7 @@ async def send_instagram_message(recipient_id: str, text: str):
 
     base_url = _get_graph_base_url()
     token = settings.instagram_access_token.get_secret_value()
-    url = f"{base_url}/v22.0/me/messages?access_token={token}"
+    url = f"{base_url}/v25.0/me/messages?access_token={token}"
     
     # Форматирование текста (Instagram не поддерживает HTML теги)
     ig_text = text
@@ -101,7 +101,7 @@ async def get_instagram_profile(sender_id: str) -> str | None:
         return None
     base_url = _get_graph_base_url()
     token = settings.instagram_access_token.get_secret_value()
-    url = f"{base_url}/v22.0/{sender_id}?fields=username,name&access_token={token}"
+    url = f"{base_url}/v25.0/{sender_id}?fields=username,name&access_token={token}"
     try:
         session = await get_http_session()
         async with session.get(url, timeout=10) as resp:
