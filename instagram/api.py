@@ -10,6 +10,7 @@ from common.core.config import settings
 from common.database.crud import add_user, get_user_by_telegram_id, log_message
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
+from common.services.speech import transcribe_audio
 
 logger = logging.getLogger(__name__)
 
@@ -309,6 +310,40 @@ async def _handle_instagram_message(sender_id: str, text: str):
         await send_instagram_document(sender_id, ai_response.document_path)
 
 
+async def _download_instagram_audio(audio_url: str) -> bytes | None:
+    """Скачивает аудиофайл по URL из вебхука Instagram."""
+    try:
+        session = await get_http_session()
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with session.get(audio_url, timeout=timeout) as resp:
+            if resp.status == 200:
+                return await resp.read()
+            logger.error("Не удалось скачать аудио из Instagram: HTTP %s", resp.status)
+    except Exception as e:
+        logger.error("Ошибка при скачивании аудио из Instagram: %s", e)
+    return None
+
+
+async def _handle_instagram_voice(sender_id: str, audio_url: str):
+    """Обработка голосового сообщения Instagram: скачивание → STT → AI → ответ."""
+    # Скачиваем аудио
+    audio_bytes = await _download_instagram_audio(audio_url)
+    if audio_bytes is None:
+        await send_instagram_message(sender_id, "⚠️ Не удалось обработать голосовое сообщение.")
+        return
+
+    # Распознаём речь через Groq Whisper
+    transcribed_text = await transcribe_audio(audio_bytes)
+    if not transcribed_text:
+        await send_instagram_message(sender_id, "⚠️ Не удалось распознать голосовое сообщение. Попробуйте написать текстом.")
+        return
+
+    logger.info("Instagram голосовое распознано: '%s'", transcribed_text[:80])
+
+    # Обрабатываем как обычное текстовое сообщение
+    await _handle_instagram_message(sender_id, transcribed_text)
+
+
 @instagram_router.post("/webhook")
 async def instagram_webhook(request: Request, background_tasks: BackgroundTasks):
     """Прием входящих сообщений от Meta (Instagram)."""
@@ -327,11 +362,24 @@ async def instagram_webhook(request: Request, background_tasks: BackgroundTasks)
                 # Игнорируем эхо-сообщения
                 if message.get("is_echo"):
                     continue
-                    
+
+                if not sender_id:
+                    continue
+
+                # Текстовое сообщение
                 text = message.get("text")
-                
-                if sender_id and text:
+                if text:
                     background_tasks.add_task(_handle_instagram_message, sender_id, text)
+                    continue
+
+                # Голосовое / аудио сообщение
+                attachments = message.get("attachments", [])
+                for att in attachments:
+                    if att.get("type") == "audio":
+                        audio_url = att.get("payload", {}).get("url")
+                        if audio_url:
+                            background_tasks.add_task(_handle_instagram_voice, sender_id, audio_url)
+                            break
                     
         return Response(content="EVENT_RECEIVED", status_code=200)
     else:
