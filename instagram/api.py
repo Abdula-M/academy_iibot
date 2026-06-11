@@ -53,7 +53,7 @@ async def send_instagram_message(recipient_id: str, text: str):
         logger.error("INSTAGRAM_ACCESS_TOKEN не установлен! Ответ не будет отправлен.")
         return
         
-    url = f"https://graph.facebook.com/v20.0/me/messages?access_token={settings.instagram_access_token.get_secret_value()}"
+    url = f"https://graph.facebook.com/v22.0/me/messages?access_token={settings.instagram_access_token.get_secret_value()}"
     
     # Форматирование текста (Instagram не поддерживает HTML теги)
     ig_text = text
@@ -81,7 +81,7 @@ async def get_instagram_profile(sender_id: str) -> str | None:
     """Получает username пользователя Instagram по его ID через Graph API."""
     if not settings.instagram_access_token:
         return None
-    url = f"https://graph.facebook.com/v20.0/{sender_id}?fields=username,name&access_token={settings.instagram_access_token.get_secret_value()}"
+    url = f"https://graph.facebook.com/v22.0/{sender_id}?fields=username,name&access_token={settings.instagram_access_token.get_secret_value()}"
     try:
         session = await get_http_session()
         async with session.get(url, timeout=10) as resp:
