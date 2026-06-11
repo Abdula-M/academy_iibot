@@ -45,6 +45,20 @@ async def verify_webhook(request: Request):
     return Response(content="Hello", status_code=200)
 
 
+def _get_graph_base_url() -> str:
+    """Определяет базовый URL Graph API в зависимости от типа токена.
+
+    IGAA-токены (Instagram Login) → graph.instagram.com
+    EAA-токены (Page Access Token) → graph.facebook.com
+    """
+    if not settings.instagram_access_token:
+        return "https://graph.facebook.com"
+    token = settings.instagram_access_token.get_secret_value()
+    if token.startswith("IGAA"):
+        return "https://graph.instagram.com"
+    return "https://graph.facebook.com"
+
+
 async def send_instagram_message(recipient_id: str, text: str):
     """
     Отправка сообщения обратно пользователю через Graph API.
@@ -52,8 +66,10 @@ async def send_instagram_message(recipient_id: str, text: str):
     if not settings.instagram_access_token:
         logger.error("INSTAGRAM_ACCESS_TOKEN не установлен! Ответ не будет отправлен.")
         return
-        
-    url = f"https://graph.instagram.com/v22.0/me/messages?access_token={settings.instagram_access_token.get_secret_value()}"
+
+    base_url = _get_graph_base_url()
+    token = settings.instagram_access_token.get_secret_value()
+    url = f"{base_url}/v22.0/me/messages?access_token={token}"
     
     # Форматирование текста (Instagram не поддерживает HTML теги)
     ig_text = text
@@ -64,6 +80,8 @@ async def send_instagram_message(recipient_id: str, text: str):
         "message": {"text": ig_text}
     }
     
+    logger.info("Отправка сообщения в Instagram через %s (токен: %s...)", base_url, token[:10])
+
     try:
         session = await get_http_session()
         timeout = aiohttp.ClientTimeout(total=30)
@@ -81,7 +99,9 @@ async def get_instagram_profile(sender_id: str) -> str | None:
     """Получает username пользователя Instagram по его ID через Graph API."""
     if not settings.instagram_access_token:
         return None
-    url = f"https://graph.instagram.com/v22.0/{sender_id}?fields=username,name&access_token={settings.instagram_access_token.get_secret_value()}"
+    base_url = _get_graph_base_url()
+    token = settings.instagram_access_token.get_secret_value()
+    url = f"{base_url}/v22.0/{sender_id}?fields=username,name&access_token={token}"
     try:
         session = await get_http_session()
         async with session.get(url, timeout=10) as resp:
