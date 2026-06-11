@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     instagram_verify_token: str = ""
     instagram_access_token: SecretStr | None = None
 
+    # ── MAX Messenger ────────────────────────────────────────
+    max_bot_token: SecretStr | None = None
+
     # ── PostgreSQL ───────────────────────────────────────────
     database_url: str  # asyncpg DSN, e.g. postgresql+asyncpg://user:pass@host/db
 

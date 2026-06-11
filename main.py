@@ -21,6 +21,7 @@ from telegram.create import bot, dp
 from telegram.handlers.user import router as user_router
 from whatsapp.api import whatsapp_router
 from instagram.api import instagram_router
+from max_messenger.api import max_router
 from common.core.config import settings
 from common.database.crud import (
     get_dashboard_stats,
@@ -103,6 +104,7 @@ app = FastAPI(
 
 app.include_router(whatsapp_router)
 app.include_router(instagram_router)
+app.include_router(max_router)
 
 
 # ── Webhook endpoint (работает только в webhook-режиме) ──────

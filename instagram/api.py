@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Request, Response, HTTPException
 import aiohttp
 
 from common.core.config import settings
-from common.database.crud import add_user, log_message
+from common.database.crud import add_user, get_user_by_telegram_id, log_message
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
 
@@ -77,6 +77,28 @@ async def send_instagram_message(recipient_id: str, text: str):
         logger.error("Не удалось подключиться к Meta API: %s", e)
 
 
+async def get_instagram_profile(sender_id: str) -> str | None:
+    """Получает username пользователя Instagram по его ID через Graph API."""
+    if not settings.instagram_access_token:
+        return None
+    url = f"https://graph.facebook.com/v20.0/{sender_id}?fields=username,name&access_token={settings.instagram_access_token.get_secret_value()}"
+    try:
+        session = await get_http_session()
+        async with session.get(url, timeout=10) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                username = data.get("username")
+                if not username:
+                    username = data.get("name")
+                return username
+            else:
+                error_data = await resp.text()
+                logger.error("Ошибка получения профиля Instagram для %s: %s", sender_id, error_data)
+    except Exception as e:
+        logger.error("Исключение при получении профиля Instagram для %s: %s", sender_id, e)
+    return None
+
+
 async def _handle_instagram_message(sender_id: str, text: str):
     """Фоновая задача обработки сообщения Instagram."""
     # Для Instagram ID (PSID/IGSID) — это большая строка из цифр.
@@ -91,7 +113,17 @@ async def _handle_instagram_message(sender_id: str, text: str):
     user_pk = None
     try:
         async with async_session_factory() as session:
-            user = await add_user(session, telegram_id=user_id, username=f"ig_{sender_id}")
+            # Сначала проверим, есть ли уже пользователь с нормальным юзернеймом
+            user = await get_user_by_telegram_id(session, user_id)
+            default_ig_name = f"ig_{sender_id}"
+            
+            if not user or user.username == default_ig_name or not user.username:
+                profile_name = await get_instagram_profile(sender_id)
+                username_str = profile_name if profile_name else default_ig_name
+            else:
+                username_str = user.username
+                
+            user = await add_user(session, telegram_id=user_id, username=username_str)
             await session.commit()
             user_pk = user.id
     except Exception as e:
