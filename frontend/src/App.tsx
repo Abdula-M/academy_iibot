@@ -80,9 +80,6 @@ function App() {
 
             <main className="app-container" style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
                 <aside className={`sidebar ${selectedUser ? 'mobile-hidden' : ''}`}>
-                    <div className="search-bar">
-                        <input type="text" placeholder="Поиск по диалогам..." />
-                    </div>
                     <div className="users-list">
                         {users.length === 0 ? (
                             <div className="empty-state" style={{ padding: 20, fontSize: 13 }}>Нет данных</div>
