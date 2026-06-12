@@ -41,7 +41,7 @@ function cleanLocks(dir: string = AUTH_DIR) {
         const files = fs.readdirSync(dir);
         for (const file of files) {
             const fullPath = path.join(dir, file);
-            const stat = fs.statSync(fullPath);
+            const stat = fs.lstatSync(fullPath);
             if (stat.isDirectory()) {
                 cleanLocks(fullPath);
             } else if (file === 'SingletonLock' || file === 'SingletonCookie') {
