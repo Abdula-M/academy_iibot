@@ -106,10 +106,19 @@ async function startWhatsApp() {
         process.exit(0);
     });
 
+    // Обработчик для всех сообщений (включая отправленные с самого телефона) для дебага
+    client.on('message_create', async (msg) => {
+        if (msg.fromMe) {
+            console.log(`[DEBUG] Отправлено исходящее сообщение (или с этого же аккаунта): ${msg.from} -> ${msg.to}: ${msg.body.substring(0, 50)}`);
+        }
+    });
+
     // Слушаем входящие сообщения
     client.on('message', async (msg) => {
+        console.log(`[DEBUG] Входящее сообщение от ${msg.from}: ${msg.body.substring(0, 50)} (type: ${msg.type})`);
         // Игнорируем сообщения из групп и статусы
         if (msg.isStatus || msg.from.endsWith('@g.us')) {
+            console.log(`[DEBUG] Сообщение проигнорировано (status или группа)`);
             return;
         }
 
