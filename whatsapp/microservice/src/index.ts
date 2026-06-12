@@ -26,9 +26,10 @@ let client: Client;
  */
 function clearSessionData(): void {
     try {
-        if (fs.existsSync(AUTH_DIR)) {
-            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-            console.log('Папка сессии очищена:', AUTH_DIR);
+        const sessionPath = path.join(AUTH_DIR, 'session');
+        if (fs.existsSync(sessionPath)) {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+            console.log('Папка сессии очищена:', sessionPath);
         }
     } catch (err) {
         console.error('Ошибка при очистке папки сессии:', err);
@@ -74,7 +75,6 @@ async function startWhatsApp() {
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
-        '--single-process',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
         '--disable-background-timer-throttling'
