@@ -24,6 +24,12 @@ function App() {
     const { vacancies, markAsRead } = useVacancies();
     const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
 
+    const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
     React.useEffect(() => {
         loadStatus();
         const id = setInterval(loadStatus, 5000);
@@ -189,6 +195,7 @@ function App() {
                                         );
                                     })
                                 )}
+                                <div ref={messagesEndRef} />
                             </div>
                         </>
                     ) : (

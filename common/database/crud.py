@@ -279,12 +279,12 @@ async def get_messages_by_user(
     stmt = (
         select(Message.question, Message.answer, Message.created_at)
         .where(Message.telegram_id == telegram_id)
-        .order_by(Message.created_at.asc())
+        .order_by(Message.created_at.desc())
         .limit(limit)
     )
 
     result = await session.execute(stmt)
-    rows = result.all()
+    rows = result.all()[::-1]
 
     return [
         {

@@ -36,13 +36,13 @@ export const WhatsAppModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <div className="modal-close" onClick={onClose}>&times;</div>
                 <h3 style={{ marginBottom: 12, fontSize: 22 }}>WhatsApp Подключение</h3>
                 <p style={{ fontSize: 14, color: 'var(--text-dim)' }}>{status}</p>
-                <div id="qr-container" style={{ display: 'flex', justifyContent: 'center', padding: '20px', background: 'white', borderRadius: '8px', marginBottom: '16px' }}>
-                    {qrCode && (
-                        qrCode.startsWith('data:image') 
+                {qrCode && (
+                    <div id="qr-container" style={{ display: 'flex', justifyContent: 'center', padding: '20px', background: 'white', borderRadius: '8px', marginBottom: '16px' }}>
+                        {qrCode.startsWith('data:image') 
                             ? <img src={qrCode} alt="WhatsApp QR Code" /> 
-                            : <QRCode value={qrCode} size={256} />
-                    )}
-                </div>
+                            : <QRCode value={qrCode} size={256} />}
+                    </div>
+                )}
                 {status.includes('подключен') && (
                     <button className="btn-danger" onClick={logout}>Отвязать WhatsApp</button>
                 )}
