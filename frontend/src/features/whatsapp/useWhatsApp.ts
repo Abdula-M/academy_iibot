@@ -8,17 +8,18 @@ export const useWhatsApp = () => {
     const loadStatus = async () => {
         try {
             const data = await apiFetch<any>('/whatsapp/status');
-            if (data.status === 'authenticated') {
+            const currentStatus = data.status?.toUpperCase();
+            if (currentStatus === 'AUTHENTICATED') {
                 setStatus('✅ WhatsApp подключен. Бот готов к работе.');
                 setQrCode(null);
-            } else if (data.status === 'qr_ready') {
+            } else if (currentStatus === 'QR_READY') {
                 setStatus('Отсканируйте QR-код в приложении WhatsApp');
-                setQrCode(data.qr_base64);
+                setQrCode(data.qr_base64 || data.qr);
             } else {
                 setStatus('⏳ Инициализация WhatsApp... Подождите.');
                 setQrCode(null);
             }
-            return data.status;
+            return currentStatus?.toLowerCase() || 'error';
         } catch (err) {
             console.error('Ошибка WhatsApp', err);
             setStatus('❌ Ошибка связи с WhatsApp сервисом.');

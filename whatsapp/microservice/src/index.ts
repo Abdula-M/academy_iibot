@@ -76,7 +76,8 @@ async function startWhatsApp() {
         authStrategy: new LocalAuth(),
         puppeteer: {
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-            args: puppeteerArgs
+            args: puppeteerArgs,
+            dumpio: true
         }
     });
 
