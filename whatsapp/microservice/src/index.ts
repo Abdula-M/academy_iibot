@@ -35,22 +35,26 @@ function clearSessionData(): void {
     }
 }
 
-function cleanLocks() {
-    const lockPaths = [
-        path.join(AUTH_DIR, 'session', 'SingletonLock'),
-        path.join(AUTH_DIR, 'session', 'SingletonCookie'),
-        path.join(AUTH_DIR, 'session', 'Default', 'SingletonLock'),
-        path.join(AUTH_DIR, 'session', 'Default', 'SingletonCookie')
-    ];
-    for (const p of lockPaths) {
-        try {
-            if (fs.existsSync(p)) {
-                fs.rmSync(p, { force: true });
-                console.log('Удален зависший lock-файл:', p);
+function cleanLocks(dir: string = AUTH_DIR) {
+    try {
+        if (!fs.existsSync(dir)) return;
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) {
+                cleanLocks(fullPath);
+            } else if (file === 'SingletonLock' || file === 'SingletonCookie') {
+                try {
+                    fs.rmSync(fullPath, { force: true });
+                    console.log('Удален зависший lock-файл:', fullPath);
+                } catch (e) {
+                    console.error('Ошибка при удалении lock-файла:', fullPath, e);
+                }
             }
-        } catch (e) {
-            console.error('Ошибка при удалении lock-файла:', p, e);
         }
+    } catch (e) {
+        console.error('Ошибка при обходе директории для очистки локов:', e);
     }
 }
 
