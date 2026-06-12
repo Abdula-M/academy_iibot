@@ -26,16 +26,42 @@ let client: Client;
  */
 function clearSessionData(): void {
     try {
-        if (fs.existsSync(AUTH_DIR)) {
-            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-            console.log('Папка сессии очищена:', AUTH_DIR);
+        const sessionPath = path.join(AUTH_DIR, 'session');
+        if (fs.existsSync(sessionPath)) {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+            console.log('Папка сессии очищена:', sessionPath);
         }
     } catch (err) {
         console.error('Ошибка при очистке папки сессии:', err);
     }
 }
 
+function cleanLocks(dir: string = AUTH_DIR) {
+    try {
+        if (!fs.existsSync(dir)) return;
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            const stat = fs.lstatSync(fullPath);
+            if (stat.isDirectory()) {
+                cleanLocks(fullPath);
+            } else if (file === 'SingletonLock' || file === 'SingletonCookie') {
+                try {
+                    fs.rmSync(fullPath, { force: true });
+                    console.log('Удален зависший lock-файл:', fullPath);
+                } catch (e) {
+                    console.error('Ошибка при удалении lock-файла:', fullPath, e);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Ошибка при обходе директории для очистки локов:', e);
+    }
+}
+
 async function startWhatsApp() {
+    cleanLocks();
+
     let puppeteerArgs = [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -51,9 +77,6 @@ async function startWhatsApp() {
         puppeteer: {
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
             args: puppeteerArgs
-        },
-        webVersionCache: {
-            type: 'none',
         }
     });
 
@@ -67,10 +90,6 @@ async function startWhatsApp() {
     client.on('authenticated', () => {
         currentStatus = 'AUTHENTICATED';
         currentQR = '';
-    });
-
-    client.on('loading_screen', (percent: string, message: string) => {
-        console.log(`[LOADING] ${percent}% - ${message}`);
     });
 
     client.on('ready', async () => {
@@ -154,23 +173,7 @@ async function startWhatsApp() {
     });
 
     console.log('Запуск WhatsApp клиента...');
-    
-    // Таймаут на инициализацию: если за 90 секунд клиент не стартовал — перезапуск
-    const initTimeout = setTimeout(async () => {
-        if (currentStatus === 'STARTING') {
-            console.error('TIMEOUT: WhatsApp клиент не запустился за 90 секунд. Перезапуск...');
-            try { await client.destroy(); } catch (_) {}
-            // Не вызываем clearSessionData — Chromium может ещё держать файлы
-            process.exit(1);
-        }
-    }, 90_000);
-    initTimeout.unref();
-
-    client.initialize().catch(async (err) => {
-        console.error('Ошибка при инициализации WhatsApp клиента:', err);
-        try { await client.destroy(); } catch (_) {}
-        process.exit(1);
-    });
+    client.initialize();
 }
 
 // Эндпоинт для отправки сообщений из FastAPI в WhatsApp

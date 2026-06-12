@@ -1,4 +1,4 @@
-FROM node:18-bookworm-slim
+FROM node:18-bullseye-slim
 
 # Устанавливаем Chromium и зависимости для Puppeteer
 RUN apt-get update && apt-get install -y \
