@@ -114,10 +114,15 @@ function App() {
                                     <div className="stat-value" style={{ fontSize: 11, marginTop: 2, color: '#fcd34d' }}>Отсканируйте QR ⚙️</div>
                                 </div>
                             </>
+                        ) : waStatus.includes('подключен') ? (
+                            <div>
+                                <div className="stat-label" style={{ color: '#10b981' }}>WhatsApp</div>
+                                <div className="stat-value" style={{ fontSize: 13, marginTop: 4, color: '#34d399' }}>Подключен ✅</div>
+                            </div>
                         ) : (
                             <div>
-                                <div className="stat-label" style={{ color: waStatus.includes('подключен') ? '#10b981' : '#34d399' }}>Настройки</div>
-                                <div className="stat-value" style={{ fontSize: 13, marginTop: 4 }}>WhatsApp &nbsp;⚙️</div>
+                                <div className="stat-label" style={{ color: '#9ca3af' }}>WhatsApp</div>
+                                <div className="stat-value" style={{ fontSize: 13, marginTop: 4 }}>Загрузка... ⏳</div>
                             </div>
                         )}
                     </div>
