@@ -19,7 +19,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, FSInputFile
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from common.database.crud import add_user, log_message
+from common.database.crud import add_user, log_message, save_vacancy_application
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
 from common.services.speech import transcribe_audio
@@ -72,6 +72,7 @@ async def handle_start(message: Message, state: FSMContext) -> None:
                 session=session,
                 telegram_id=telegram_id,
                 username=username,
+                platform="telegram",
             )
             await session.commit()
 
@@ -243,11 +244,20 @@ async def _process_ai_query(
 
     # Логируем в БД
     try:
-        from common.database.crud import add_user, log_message
+        from common.database.crud import add_user, log_message, save_vacancy_application
         from common.database.session import async_session_factory
         async with async_session_factory() as session:
-            user = await add_user(session, telegram_id=telegram_id, username=username)
+            user = await add_user(session, telegram_id=telegram_id, username=username, platform="telegram")
             await log_message(session, user_id=user.id, telegram_id=telegram_id, question=user_query, answer=ai_response.text)
+            if ai_response.vacancy_application_text:
+                await save_vacancy_application(
+                    session,
+                    user_id=user.id,
+                    platform_user_id=telegram_id,
+                    platform="telegram",
+                    application_text=ai_response.vacancy_application_text,
+                )
+                logger.info("Заявка на вакансию сохранена (Telegram, user=%d)", telegram_id)
             await session.commit()
     except Exception as e:
         logger.warning("Ошибка логирования сообщения Telegram: %s", e)

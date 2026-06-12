@@ -35,6 +35,11 @@ class User(Base):
         nullable=True,
         comment="Telegram username (без @)",
     )
+    platform: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="Платформа: telegram, instagram, whatsapp, max",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -91,4 +96,45 @@ class Message(Base):
         back_populates="messages",
         lazy="joined",
     )
+
+
+class VacancyApplication(Base):
+    """Заявка на вакансию (резюме-анкета)."""
+
+    __tablename__ = "vacancy_applications"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True,
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="FK на пользователя",
+    )
+    platform_user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        comment="ID пользователя на платформе (telegram_id / IGSID / телефон)",
+    )
+    platform: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        comment="Платформа: telegram, instagram, whatsapp, max",
+    )
+    application_text: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        comment="Полный текст заполненной анкеты",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+        comment="Время подачи заявки",
+    )
+
+    user: Mapped["User"] = relationship(lazy="joined")
 

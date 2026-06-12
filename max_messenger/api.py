@@ -13,7 +13,7 @@ from fastapi import APIRouter, BackgroundTasks, Request, Response, HTTPException
 import aiohttp
 
 from common.core.config import settings
-from common.database.crud import add_user, log_message
+from common.database.crud import add_user, log_message, save_vacancy_application
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
 
@@ -107,6 +107,7 @@ async def _handle_max_message(sender_user_id: int, text: str) -> None:
                 session,
                 telegram_id=sender_user_id,
                 username=f"max_{sender_user_id}",
+                platform="max",
             )
             await session.commit()
             user_pk = user.id
@@ -141,6 +142,15 @@ async def _handle_max_message(sender_user_id: int, text: str) -> None:
                     question=text,
                     answer=ai_response.text,
                 )
+                if ai_response.vacancy_application_text:
+                    await save_vacancy_application(
+                        session,
+                        user_id=user_pk,
+                        platform_user_id=sender_user_id,
+                        platform="max",
+                        application_text=ai_response.vacancy_application_text,
+                    )
+                    logger.info("Заявка на вакансию сохранена (MAX, user=%d)", sender_user_id)
                 await session.commit()
         except Exception as e:
             logger.error("Ошибка логирования сообщения MAX: %s", e)

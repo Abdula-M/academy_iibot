@@ -11,13 +11,14 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from common.database.models import Message, User
+from common.database.models import Message, User, VacancyApplication
 
 
 async def add_user(
     session: AsyncSession,
     telegram_id: int,
     username: str | None = None,
+    platform: str | None = None,
 ) -> User:
     """Добавить нового пользователя или вернуть существующего (upsert).
 
@@ -28,16 +29,17 @@ async def add_user(
         session: Активная асинхронная сессия SQLAlchemy.
         telegram_id: Уникальный Telegram ID пользователя.
         username: Telegram username (опционально).
+        platform: Платформа (telegram/instagram/whatsapp/max).
 
     Returns:
         Экземпляр модели User.
     """
     stmt = (
         pg_insert(User)
-        .values(telegram_id=telegram_id, username=username)
+        .values(telegram_id=telegram_id, username=username, platform=platform)
         .on_conflict_do_update(
             index_elements=[User.telegram_id],
-            set_={"username": username},
+            set_={"username": username, "platform": platform},
         )
         .returning(User)
     )
@@ -195,6 +197,7 @@ async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
         select(
             User.telegram_id,
             User.username,
+            User.platform,
             last_msg_subq.c.last_time,
             last_msg_subq.c.msg_count,
         )
@@ -219,6 +222,7 @@ async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
         users_data.append({
             "telegram_id": row.telegram_id,
             "username": row.username or f"id:{row.telegram_id}",
+            "platform": row.platform or "telegram",
             "last_question": last_question[:80] + "..." if len(last_question) > 80 else last_question,
             "last_time": row.last_time.isoformat() if row.last_time else "",
             "msg_count": row.msg_count or 0,
@@ -262,3 +266,68 @@ async def get_messages_by_user(
     ]
 
 
+# ── Заявки на вакансии ───────────────────────────────────────
+
+
+async def save_vacancy_application(
+    session: AsyncSession,
+    user_id: int,
+    platform_user_id: int,
+    platform: str,
+    application_text: str,
+) -> None:
+    """Сохранить заявку на вакансию.
+
+    Args:
+        session: Активная асинхронная сессия SQLAlchemy.
+        user_id: PK пользователя (модель User.id).
+        platform_user_id: ID пользователя на платформе.
+        platform: Название платформы (telegram/instagram/whatsapp/max).
+        application_text: Полный текст заполненной анкеты.
+    """
+    application = VacancyApplication(
+        user_id=user_id,
+        platform_user_id=platform_user_id,
+        platform=platform,
+        application_text=application_text,
+    )
+    session.add(application)
+
+
+async def get_vacancy_applications(
+    session: AsyncSession,
+    limit: int = 100,
+) -> list[dict[str, str]]:
+    """Получить список заявок на вакансии для дашборда.
+
+    Args:
+        session: Активная асинхронная сессия SQLAlchemy.
+        limit: Максимальное количество записей.
+
+    Returns:
+        Список словарей с полями: username, platform, application_text, created_at.
+    """
+    stmt = (
+        select(
+            User.username,
+            VacancyApplication.platform,
+            VacancyApplication.application_text,
+            VacancyApplication.created_at,
+        )
+        .join(User, VacancyApplication.user_id == User.id)
+        .order_by(VacancyApplication.created_at.desc())
+        .limit(limit)
+    )
+
+    result = await session.execute(stmt)
+    rows = result.all()
+
+    return [
+        {
+            "username": row.username or "Неизвестный",
+            "platform": row.platform,
+            "application_text": row.application_text,
+            "created_at": row.created_at.isoformat() if row.created_at else "",
+        }
+        for row in rows
+    ]

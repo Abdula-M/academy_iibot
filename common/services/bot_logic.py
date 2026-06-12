@@ -25,10 +25,17 @@ def clean_markdown_to_html(text: str) -> str:
 
 class AIResponse:
     """Дата-класс для ответа ИИ."""
-    def __init__(self, text: str, photo_path: str | None = None, document_path: str | None = None):
+    def __init__(
+        self,
+        text: str,
+        photo_path: str | None = None,
+        document_path: str | None = None,
+        vacancy_application_text: str | None = None,
+    ):
         self.text = text
         self.photo_path = photo_path
         self.document_path = document_path
+        self.vacancy_application_text = vacancy_application_text
 
 
 async def process_ai_query(
@@ -88,6 +95,18 @@ async def process_ai_query(
             else:
                 logger.error("Не найден файл аккредитации: %s", pdf_path)
 
+        # Обработка тега заявки на вакансию
+        vacancy_text: str | None = None
+        vacancy_match = re.search(
+            r"\[VACANCY_APPLICATION\](.*?)\[/VACANCY_APPLICATION\]",
+            answer,
+            re.DOTALL,
+        )
+        if vacancy_match:
+            vacancy_text = vacancy_match.group(1).strip()
+            answer = answer[:vacancy_match.start()].rstrip()
+            logger.info("Обнаружена заявка на вакансию (%d символов)", len(vacancy_text))
+
         # 5. Поиск фото по ВОПРОСУ пользователя
         photo_path = find_photo_for_query(user_query, sent_photos)
         
@@ -100,7 +119,12 @@ async def process_ai_query(
         if document_str_path is not None:
             photo_str_path = None
 
-        return AIResponse(text=answer, photo_path=photo_str_path, document_path=document_str_path), updated_history, sent_photos
+        return AIResponse(
+            text=answer,
+            photo_path=photo_str_path,
+            document_path=document_str_path,
+            vacancy_application_text=vacancy_text,
+        ), updated_history, sent_photos
 
     except LLMError as exc:
         logger.warning("LLM ошибка: %s", exc)

@@ -28,6 +28,7 @@ from common.database.crud import (
     get_messages_by_user,
     get_recent_messages,
     get_users_list,
+    get_vacancy_applications,
 )
 from common.database.models import Base
 from common.database.session import async_engine, async_session_factory
@@ -161,3 +162,10 @@ async def api_user_messages(telegram_id: int) -> list[dict[str, str]]:
     """История диалога конкретного пользователя."""
     async with async_session_factory() as session:
         return await get_messages_by_user(session, telegram_id)
+
+
+@app.get("/api/vacancy-applications")
+async def api_vacancy_applications() -> list[dict[str, str]]:
+    """Список заявок на вакансии."""
+    async with async_session_factory() as session:
+        return await get_vacancy_applications(session)

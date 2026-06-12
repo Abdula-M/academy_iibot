@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 import aiohttp
 
 from common.core.config import settings
-from common.database.crud import add_user, get_user_by_telegram_id, log_message
+from common.database.crud import add_user, get_user_by_telegram_id, log_message, save_vacancy_application
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
 from common.services.speech import transcribe_audio
@@ -270,7 +270,7 @@ async def _handle_instagram_message(sender_id: str, text: str):
             else:
                 username_str = user.username
                 
-            user = await add_user(session, telegram_id=user_id, username=username_str)
+            user = await add_user(session, telegram_id=user_id, username=username_str, platform="instagram")
             await session.commit()
             user_pk = user.id
     except Exception as e:
@@ -298,6 +298,15 @@ async def _handle_instagram_message(sender_id: str, text: str):
         try:
             async with async_session_factory() as session:
                 await log_message(session, user_id=user_pk, telegram_id=user_id, question=text, answer=ai_response.text)
+                if ai_response.vacancy_application_text:
+                    await save_vacancy_application(
+                        session,
+                        user_id=user_pk,
+                        platform_user_id=user_id,
+                        platform="instagram",
+                        application_text=ai_response.vacancy_application_text,
+                    )
+                    logger.info("Заявка на вакансию сохранена (Instagram, user=%s)", sender_id)
                 await session.commit()
         except Exception as e:
             logger.error("Ошибка логирования сообщения Instagram: %s", e)

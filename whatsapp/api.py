@@ -62,7 +62,7 @@ async def _handle_whatsapp_message(msg: WhatsAppMessage):
     user_pk = None
     try:
         async with async_session_factory() as session:
-            user = await add_user(session, telegram_id=user_id, username=username)
+            user = await add_user(session, telegram_id=user_id, username=username, platform="whatsapp")
             await session.commit()
             user_pk = user.id
     except Exception as e:
@@ -106,9 +106,18 @@ async def _handle_whatsapp_message(msg: WhatsAppMessage):
     # Логируем сообщение
     if user_pk is not None:
         try:
-            from common.database.crud import log_message
+            from common.database.crud import log_message, save_vacancy_application
             async with async_session_factory() as session:
                 await log_message(session, user_id=user_pk, telegram_id=user_id, question=user_query, answer=ai_response.text)
+                if ai_response.vacancy_application_text:
+                    await save_vacancy_application(
+                        session,
+                        user_id=user_pk,
+                        platform_user_id=user_id,
+                        platform="whatsapp",
+                        application_text=ai_response.vacancy_application_text,
+                    )
+                    logger.info("Заявка на вакансию сохранена (WhatsApp, user=%d)", user_id)
                 await session.commit()
         except Exception as e:
             logger.error("Ошибка логирования сообщения: %s", e)
