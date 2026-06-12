@@ -10,6 +10,8 @@ import { getPlatformIcon } from './shared/ui/Icons';
 import { formatDate, formatTime, formatBotAnswer } from './shared/utils/date';
 import type { User, VacancyApplication } from './shared/types';
 
+import QRCode from 'react-qr-code';
+
 function App() {
     const [currentTab, setCurrentTab] = useState<'chat' | 'vacancy'>('chat');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -96,7 +98,11 @@ function App() {
                     >
                         {qrCode ? (
                             <>
-                                <img src={qrCode} alt="QR" style={{ width: 44, height: 44, borderRadius: 4, background: '#fff', padding: 2 }} />
+                                <div style={{ width: 44, height: 44, borderRadius: 4, background: '#fff', padding: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                    {qrCode.startsWith('data:image') 
+                                        ? <img src={qrCode} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> 
+                                        : <QRCode value={qrCode} size={40} style={{ width: '100%', height: '100%' }} />}
+                                </div>
                                 <div>
                                     <div className="stat-label" style={{ color: '#f59e0b' }}>WhatsApp</div>
                                     <div className="stat-value" style={{ fontSize: 11, marginTop: 2, color: '#fcd34d' }}>Отсканируйте QR ⚙️</div>
