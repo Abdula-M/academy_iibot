@@ -26,47 +26,16 @@ let client: Client;
  */
 function clearSessionData(): void {
     try {
-        const sessionPath = path.join(AUTH_DIR, 'session');
-        if (fs.existsSync(sessionPath)) {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-            console.log('Папка сессии очищена:', sessionPath);
+        if (fs.existsSync(AUTH_DIR)) {
+            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+            console.log('Папка сессии очищена:', AUTH_DIR);
         }
     } catch (err) {
         console.error('Ошибка при очистке папки сессии:', err);
     }
 }
 
-function cleanLocks(dir: string = AUTH_DIR) {
-    try {
-        if (!fs.existsSync(dir)) return;
-        const files = fs.readdirSync(dir);
-        for (const file of files) {
-            const fullPath = path.join(dir, file);
-            const stat = fs.lstatSync(fullPath);
-            if (stat.isDirectory()) {
-                cleanLocks(fullPath);
-            } else if (file === 'SingletonLock' || file === 'SingletonCookie') {
-                try {
-                    fs.rmSync(fullPath, { force: true });
-                    console.log('Удален зависший lock-файл:', fullPath);
-                } catch (e) {
-                    console.error('Ошибка при удалении lock-файла:', fullPath, e);
-                }
-            }
-        }
-    } catch (e) {
-        console.error('Ошибка при обходе директории для очистки локов:', e);
-    }
-}
-
 async function startWhatsApp() {
-    if (process.env.CLEAR_SESSION === 'true') {
-        console.log('Принудительное очищение сессии (CLEAR_SESSION=true)...');
-        clearSessionData();
-    }
-
-    cleanLocks();
-
     let puppeteerArgs = [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -74,18 +43,14 @@ async function startWhatsApp() {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-background-timer-throttling'
+        '--disable-gpu'
     ];
     
     client = new Client({
         authStrategy: new LocalAuth(),
         puppeteer: {
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-            args: puppeteerArgs,
-            dumpio: true
+            args: puppeteerArgs
         },
         webVersionCache: {
             type: 'none',

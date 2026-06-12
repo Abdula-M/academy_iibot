@@ -112,7 +112,7 @@ services:
       - CLEAR_SESSION=${CLEAR_SESSION:-false}
       # - DEBUG=puppeteer:*
     ports:
-      - "3000:3000"
+      - "3005:3000"
     volumes:
       - whatsapp_data:/app/.wwebjs_auth
     networks:
