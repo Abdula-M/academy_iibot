@@ -156,18 +156,19 @@ async function startWhatsApp() {
     console.log('Запуск WhatsApp клиента...');
     
     // Таймаут на инициализацию: если за 90 секунд клиент не стартовал — перезапуск
-    const initTimeout = setTimeout(() => {
+    const initTimeout = setTimeout(async () => {
         if (currentStatus === 'STARTING') {
             console.error('TIMEOUT: WhatsApp клиент не запустился за 90 секунд. Перезапуск...');
-            clearSessionData();
+            try { await client.destroy(); } catch (_) {}
+            // Не вызываем clearSessionData — Chromium может ещё держать файлы
             process.exit(1);
         }
     }, 90_000);
-    initTimeout.unref(); // Не блокируем завершение процесса
+    initTimeout.unref();
 
-    client.initialize().catch((err) => {
+    client.initialize().catch(async (err) => {
         console.error('Ошибка при инициализации WhatsApp клиента:', err);
-        clearSessionData();
+        try { await client.destroy(); } catch (_) {}
         process.exit(1);
     });
 }
