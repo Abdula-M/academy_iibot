@@ -29,6 +29,9 @@ from common.database.crud import (
     get_recent_messages,
     get_users_list,
     get_vacancy_applications,
+    mark_messages_read,
+    mark_vacancy_application_read,
+    get_unread_applications_count,
 )
 from common.database.models import Base
 from common.database.session import async_engine, async_session_factory
@@ -138,9 +141,12 @@ async def dashboard_page() -> HTMLResponse:
 
 @app.get("/api/stats")
 async def api_stats() -> dict[str, int]:
-    """JSON-статистика: total_users, today_users, today_messages."""
+    """JSON-статистика: total_users, today_users, today_messages, unread_applications."""
     async with async_session_factory() as session:
-        return await get_dashboard_stats(session)
+        stats = await get_dashboard_stats(session)
+        unread_apps = await get_unread_applications_count(session)
+        stats["unread_applications"] = unread_apps
+        return stats
 
 
 @app.get("/api/messages")
@@ -158,14 +164,24 @@ async def api_users() -> list[dict[str, object]]:
 
 
 @app.get("/api/messages/{telegram_id}")
-async def api_user_messages(telegram_id: int) -> list[dict[str, str]]:
-    """История диалога конкретного пользователя."""
+async def api_messages_user(telegram_id: int) -> list[dict[str, str]]:
+    """История переписки с конкретным пользователем."""
     async with async_session_factory() as session:
-        return await get_messages_by_user(session, telegram_id)
+        # Помечаем сообщения как прочитанные при открытии диалога
+        await mark_messages_read(session, telegram_id)
+        return await get_messages_by_user(session, telegram_id=telegram_id)
 
 
 @app.get("/api/vacancy-applications")
-async def api_vacancy_applications() -> list[dict[str, str]]:
-    """Список заявок на вакансии."""
+async def api_vacancy_applications() -> list[dict[str, object]]:
+    """Получить список заявок на вакансии."""
     async with async_session_factory() as session:
         return await get_vacancy_applications(session)
+
+
+@app.post("/api/vacancy-applications/{application_id}/read")
+async def api_vacancy_read(application_id: int) -> dict[str, bool]:
+    """Пометить заявку на вакансию как прочитанную."""
+    async with async_session_factory() as session:
+        await mark_vacancy_application_read(session, application_id)
+        return {"ok": True}

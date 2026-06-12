@@ -276,6 +276,34 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+        }
+
+        .date-divider {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin: 16px 0;
+            position: relative;
+        }
+        .date-divider span {
+            background: var(--bg-main);
+            padding: 0 12px;
+            position: relative;
+            z-index: 1;
+        }
+        [data-theme="light"] .date-divider span {
+            background: #f8fafc;
+        }
+        .date-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border-glass);
+            z-index: 0;
+        }
             gap: 20px;
         }
 
@@ -898,6 +926,12 @@
             document.getElementById('today-users').textContent = data.today_users;
             document.getElementById('today-messages').textContent = data.today_messages;
             
+            if (data.unread_applications > 0) {
+                document.getElementById('tab-vacancy').innerHTML = `📋 Заявки <span class="badge" style="background:red; color:white; border-radius:50%; padding:2px 6px; font-size:10px; margin-left:4px;">${data.unread_applications}</span>`;
+            } else {
+                document.getElementById('tab-vacancy').innerHTML = `📋 Заявки`;
+            }
+            
             const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('last-update').textContent = `Обновлено в ${now}`;
         } catch (err) {
@@ -927,7 +961,7 @@
                         <div class="user-time">${formatDate(user.last_time)}</div>
                     </div>
                     <div class="user-preview">${escapeHtml(user.last_question)}</div>
-                    <div class="user-badge">${user.msg_count}</div>
+                    ${user.msg_count > 0 ? `<div class="user-badge">${user.msg_count}</div>` : ''}
                 </div>
             `).join('');
         } catch (err) {
@@ -952,12 +986,25 @@
             if (currentSelectedUserId !== telegramId) return;
 
             let html = '';
+            let lastDate = null;
             messages.forEach(msg => {
+                const msgDate = new Date(msg.created_at).toDateString();
+                if (msgDate !== lastDate) {
+                    let displayDate = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+                    const today = new Date().toDateString();
+                    const yesterday = new Date(Date.now() - 86400000).toDateString();
+                    if (msgDate === today) displayDate = 'Сегодня';
+                    else if (msgDate === yesterday) displayDate = 'Вчера';
+                    
+                    html += `<div class="date-divider"><span>${displayDate}</span></div>`;
+                    lastDate = msgDate;
+                }
+
                 // Вопрос пользователя
                 html += `
                     <div class="msg-wrapper user">
                         <div class="msg-bubble">${escapeHtml(msg.question)}</div>
-                        <div class="msg-time">${formatDate(msg.created_at)}</div>
+                        <div class="msg-time">${formatTime(msg.created_at)}</div>
                     </div>
                 `;
                 // Ответ бота
@@ -1009,7 +1056,10 @@
         if (target) target.classList.add('active');
 
         // Загружаем сообщения
-        loadUserMessages(telegramId);
+        loadUserMessages(telegramId).then(() => {
+            // Уменьшаем счетчик в UI или перегружаем список пользователей
+            loadUsersList();
+        });
     };
 
     window.backToList = function() {
@@ -1159,13 +1209,13 @@
             }
 
             tbody.innerHTML = apps.map((app, idx) => `
-                <tr onclick="openVacancyDetail(${idx})">
+                <tr onclick="openVacancyDetail(${idx}, ${app.id})" style="cursor:pointer; ${app.is_read ? '' : 'font-weight:bold; background:rgba(255,255,255,0.05);'}">
                     <td style="white-space:nowrap;">${formatDate(app.created_at)}</td>
                     <td><span class="platform-badge ${app.platform}">
                         ${getPlatformIcon(app.platform)}
                         ${app.platform}
                     </span></td>
-                    <td style="font-weight:500;">${escapeHtml(app.username)}</td>
+                    <td>${escapeHtml(app.username)}</td>
                     <td class="vacancy-preview">${escapeHtml(app.application_text.substring(0, 120))}</td>
                 </tr>
             `).join('');
@@ -1177,7 +1227,7 @@
         }
     }
 
-    window.openVacancyDetail = function(idx) {
+    window.openVacancyDetail = function(idx, appId) {
         const app = window._vacancyData[idx];
         if (!app) return;
         document.getElementById('vacancy-detail-meta').innerHTML =
@@ -1186,6 +1236,15 @@
              </div>`;
         document.getElementById('vacancy-detail-text').textContent = app.application_text;
         document.getElementById('vacancy-detail-modal').classList.add('open');
+        
+        if (!app.is_read) {
+            app.is_read = true;
+            // Делаем API-вызов в фоне
+            fetch(`${API_BASE}/api/vacancy-applications/${appId}/read`, {method: 'POST'}).catch(e=>console.error(e));
+            // Обновляем UI локально
+            loadVacancyApplications();
+            loadStats();
+        }
     };
 
     window.closeVacancyModal = function() {

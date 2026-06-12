@@ -91,6 +91,12 @@ class Message(Base):
         index=True,
         comment="Время сообщения",
     )
+    is_read: Mapped[bool] = mapped_column(
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="Прочитано ли сообщение администратором",
+    )
 
     user: Mapped["User"] = relationship(
         back_populates="messages",
@@ -134,6 +140,12 @@ class VacancyApplication(Base):
         nullable=False,
         index=True,
         comment="Время подачи заявки",
+    )
+    is_read: Mapped[bool] = mapped_column(
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="Просмотрена ли заявка администратором",
     )
 
     user: Mapped["User"] = relationship(lazy="joined")

@@ -7,7 +7,7 @@ CRUD-операции для работы с пользователями и с�
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, case, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -136,6 +136,36 @@ async def get_dashboard_stats(session: AsyncSession) -> dict[str, int]:
     }
 
 
+async def mark_messages_read(session: AsyncSession, telegram_id: int) -> None:
+    """Помечает все сообщения пользователя как прочитанные."""
+    stmt = (
+        update(Message)
+        .where(Message.telegram_id == telegram_id)
+        .where(Message.is_read == False)
+        .values(is_read=True)
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def mark_vacancy_application_read(session: AsyncSession, application_id: int) -> None:
+    """Помечает конкретную заявку на вакансию как прочитанную."""
+    stmt = (
+        update(VacancyApplication)
+        .where(VacancyApplication.id == application_id)
+        .values(is_read=True)
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def get_unread_applications_count(session: AsyncSession) -> int:
+    """Возвращает количество непрочитанных заявок на вакансию."""
+    stmt = select(func.count(VacancyApplication.id)).where(VacancyApplication.is_read == False)
+    result = await session.execute(stmt)
+    return result.scalar() or 0
+
+
 async def get_recent_messages(
     session: AsyncSession,
     limit: int = 100,
@@ -187,7 +217,7 @@ async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
         select(
             Message.telegram_id,
             func.max(Message.created_at).label("last_time"),
-            func.count(Message.id).label("msg_count"),
+            func.sum(case((Message.is_read == False, 1), else_=0)).label("msg_count"),
         )
         .group_by(Message.telegram_id)
         .subquery()
@@ -309,10 +339,13 @@ async def get_vacancy_applications(
     """
     stmt = (
         select(
+            VacancyApplication.id,
             User.username,
+            VacancyApplication.platform_user_id,
             VacancyApplication.platform,
             VacancyApplication.application_text,
             VacancyApplication.created_at,
+            VacancyApplication.is_read,
         )
         .join(User, VacancyApplication.user_id == User.id)
         .order_by(VacancyApplication.created_at.desc())
@@ -324,10 +357,31 @@ async def get_vacancy_applications(
 
     return [
         {
-            "username": row.username or "Неизвестный",
+            "id": row.id,
+            "username": row.username or f"id:{row.platform_user_id}",
             "platform": row.platform,
             "application_text": row.application_text,
-            "created_at": row.created_at.isoformat() if row.created_at else "",
+            "created_at": row.created_at.isoformat(),
+            "is_read": row.is_read,
         }
         for row in rows
     ]
+
+
+async def get_vacancy_application(session: AsyncSession, application_id: int):
+    """Получить детальную информацию о заявке."""
+    result = await session.execute(select(VacancyApplication).where(VacancyApplication.id == application_id))
+    return result.scalar_one_or_none()
+
+
+async def delete_vacancy_application(session: AsyncSession, application_id: int) -> None:
+    """Удалить заявку на вакансию."""
+    stmt = update(VacancyApplication).where(VacancyApplication.id == application_id).values(is_deleted=True)
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def get_all_vacancy_applications_count(session: AsyncSession) -> int:
+    """Возвращает общее количество заявок."""
+    result = await session.execute(select(func.count(VacancyApplication.id)))
+    return result.scalar() or 0
