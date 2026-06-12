@@ -702,6 +702,9 @@
             padding: 16px;
             transition: all 0.3s ease;
         }
+        .vacancy-item.full-width {
+            grid-column: 1 / -1;
+        }
         .vacancy-item:hover {
             background: rgba(255, 255, 255, 0.06);
             border-color: var(--accent-primary);
@@ -968,7 +971,8 @@
             if (match) {
                 // Если предыдущий ключ был, выводим его
                 if (currentKey) {
-                    html += `<div class="vacancy-item">
+                    const isLong = currentValue.length > 100;
+                    html += `<div class="vacancy-item ${isLong ? 'full-width' : ''}">
                                 <div class="vacancy-label">${escapeHtml(currentKey)}</div>
                                 <div class="vacancy-value">${currentValue}</div>
                              </div>`;
@@ -988,7 +992,8 @@
         
         // Последний элемент
         if (currentKey || currentValue) {
-            html += `<div class="vacancy-item">
+            const isLong = currentValue.length > 100;
+            html += `<div class="vacancy-item ${isLong ? 'full-width' : ''}">
                         <div class="vacancy-label">${escapeHtml(currentKey || 'Информация')}</div>
                         <div class="vacancy-value">${currentValue}</div>
                      </div>`;
