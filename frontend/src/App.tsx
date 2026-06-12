@@ -129,8 +129,8 @@ function App() {
                 </div>
             </header>
 
-            <main className="app-container" style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
-                <aside className={`sidebar ${selectedUser ? 'mobile-hidden' : ''}`}>
+            <main className={`app-container ${selectedUser ? 'chat-active' : ''}`} style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
+                <aside className="sidebar">
                     <div className="users-list">
                         {users.length === 0 ? (
                             <div className="empty-state" style={{ padding: 20, fontSize: 13 }}>Нет данных</div>
@@ -156,7 +156,7 @@ function App() {
                     </div>
                 </aside>
                 
-                <div className={`chat-area ${selectedUser ? 'mobile-active' : ''}`}>
+                <div className="chat-area">
                     {selectedUser ? (
                         <>
                             <div className="chat-header">
