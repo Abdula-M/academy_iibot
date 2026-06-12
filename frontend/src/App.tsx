@@ -3,6 +3,7 @@ import { useStats } from './features/stats/useStats';
 import { useUsers } from './features/users/useUsers';
 import { useChat } from './features/chat/useChat';
 import { useVacancies } from './features/vacancy/useVacancies';
+import { useWhatsApp } from './features/whatsapp/useWhatsApp';
 import { WhatsAppModal } from './features/whatsapp/WhatsAppModal';
 import { VacancyModal } from './features/vacancy/VacancyModal';
 import { getPlatformIcon } from './shared/ui/Icons';
@@ -19,6 +20,13 @@ function App() {
     const { users, reloadUsers } = useUsers();
     const { messages, loading: chatLoading, reloadMessages } = useChat(selectedUser ? selectedUser.telegram_id : null);
     const { vacancies, markAsRead } = useVacancies();
+    const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
+
+    React.useEffect(() => {
+        loadStatus();
+        const id = setInterval(loadStatus, 5000);
+        return () => clearInterval(id);
+    }, []);
 
     const handleSelectUser = (user: User) => {
         setSelectedUser(user);
@@ -40,7 +48,7 @@ function App() {
         <div id="app-root" data-theme="dark">
             <header className="header">
                 <div className="header-title">
-                    <span style={{ fontSize: 28, marginRight: 8 }}>🌌</span>
+                    <img src="/logo.png" alt="logo" style={{ width: 36, height: 36, borderRadius: 10, marginRight: 8, boxShadow: '0 4px 10px rgba(59,130,246,0.3)' }} />
                     AI Центр Диалогов
                 </div>
                 <div className="tab-switcher" style={{ margin: '0 auto' }}>
@@ -71,9 +79,35 @@ function App() {
                         <div className="stat-label">Сообщений</div>
                         <div className="stat-value">{stats?.today_messages || 0}</div>
                     </div>
-                    <div className="stat-card" style={{ background: 'rgba(255,255,255,0.02)', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: 8 }} onClick={() => setIsWaModalOpen(true)}>
-                        <div className="stat-label" style={{ color: '#34d399' }}>Настройки</div>
-                        <div className="stat-value" style={{ fontSize: 13, marginTop: 4 }}>WhatsApp &nbsp;⚙️</div>
+                    
+                    <div 
+                        className="stat-card" 
+                        style={{ 
+                            background: qrCode ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.02)', 
+                            border: qrCode ? '1px solid rgba(245,158,11,0.3)' : 'none', 
+                            cursor: 'pointer', 
+                            padding: qrCode ? '4px 12px' : '6px 12px', 
+                            borderRadius: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12
+                        }} 
+                        onClick={() => setIsWaModalOpen(true)}
+                    >
+                        {qrCode ? (
+                            <>
+                                <img src={qrCode} alt="QR" style={{ width: 44, height: 44, borderRadius: 4, background: '#fff', padding: 2 }} />
+                                <div>
+                                    <div className="stat-label" style={{ color: '#f59e0b' }}>WhatsApp</div>
+                                    <div className="stat-value" style={{ fontSize: 11, marginTop: 2, color: '#fcd34d' }}>Отсканируйте QR ⚙️</div>
+                                </div>
+                            </>
+                        ) : (
+                            <div>
+                                <div className="stat-label" style={{ color: waStatus.includes('подключен') ? '#10b981' : '#34d399' }}>Настройки</div>
+                                <div className="stat-value" style={{ fontSize: 13, marginTop: 4 }}>WhatsApp &nbsp;⚙️</div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -153,8 +187,10 @@ function App() {
                         </>
                     ) : (
                         <div className="empty-state">
-                            <div className="icon">🌌</div>
-                            <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 8 }}>Выберите диалог</div>
+                            <div className="icon">
+                                <img src="/logo.png" alt="logo" style={{ width: 80, height: 80, borderRadius: 20, opacity: 0.5, filter: 'drop-shadow(0 0 20px rgba(59,130,246,0.3))' }} />
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 8, marginTop: 16 }}>Выберите диалог</div>
                             <div style={{ fontSize: 14 }}>чтобы просмотреть историю сообщений</div>
                         </div>
                     )}
