@@ -35,7 +35,28 @@ function clearSessionData(): void {
     }
 }
 
+function cleanLocks() {
+    const lockPaths = [
+        path.join(AUTH_DIR, 'session', 'SingletonLock'),
+        path.join(AUTH_DIR, 'session', 'SingletonCookie'),
+        path.join(AUTH_DIR, 'session', 'Default', 'SingletonLock'),
+        path.join(AUTH_DIR, 'session', 'Default', 'SingletonCookie')
+    ];
+    for (const p of lockPaths) {
+        try {
+            if (fs.existsSync(p)) {
+                fs.rmSync(p, { force: true });
+                console.log('Удален зависший lock-файл:', p);
+            }
+        } catch (e) {
+            console.error('Ошибка при удалении lock-файла:', p, e);
+        }
+    }
+}
+
 async function startWhatsApp() {
+    cleanLocks();
+
     let puppeteerArgs = [
         '--no-sandbox',
         '--disable-setuid-sandbox',

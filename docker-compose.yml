@@ -106,6 +106,7 @@ services:
     image: ai-whatsapp-image:v3
     container_name: ai-bot-whatsapp
     restart: unless-stopped
+    init: true
     # env_file: .env
     environment:
       - WEBHOOK_URL=http://bot:8000/api/whatsapp/webhook
