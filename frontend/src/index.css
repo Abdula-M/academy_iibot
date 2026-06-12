@@ -43,6 +43,21 @@
                 radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.12), transparent 25%);
         }
 
+        #root {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #app-root {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+        }
+
         /*  Header  */
         .header {
             background: var(--bg-glass);

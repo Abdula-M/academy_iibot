@@ -37,7 +37,7 @@ function App() {
     };
 
     return (
-        <div className="app-container" data-theme="dark">
+        <div id="app-root" data-theme="dark">
             <header className="header">
                 <div className="header-title">
                     <span style={{ fontSize: 28, marginRight: 8 }}>🌌</span>
@@ -80,7 +80,7 @@ function App() {
                 </div>
             </div>
 
-            <main className="main-content" style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
+            <main className="app-container" style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
                 <aside className={`sidebar ${selectedUser ? 'mobile-hidden' : ''}`}>
                     <div className="search-bar">
                         <input type="text" placeholder="Поиск по диалогам..." />
