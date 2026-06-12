@@ -122,6 +122,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  # ── Frontend (React Dashboard) ─────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-bot-frontend
+    restart: unless-stopped
+    networks:
+      - bot-network
   caddy:
     image: caddy:2-alpine
     container_name: ai-bot-caddy

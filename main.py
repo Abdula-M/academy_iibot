@@ -15,7 +15,7 @@ from pathlib import Path
 
 from aiogram.types import Update
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from telegram.create import bot, dp
 from telegram.handlers.user import router as user_router
@@ -100,10 +100,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 # ── FastAPI-приложение ───────────────────────────────────────
-app = FastAPI(
-    title="AI Telegram Bot",
-    version="0.1.0",
-    lifespan=lifespan,
+app = FastAPI(title="AI Bot + Dashboard API", lifespan=lifespan)
+
+# CORS для локальной разработки фронтенда
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В продакшене лучше указать конкретные домены
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(whatsapp_router)
@@ -128,15 +133,7 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy"}
 
 
-# ── Dashboard ────────────────────────────────────────────────
-_DASHBOARD_PATH = Path(__file__).parent / "data" / "dashboard.html"
-
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page() -> HTMLResponse:
-    """Отдать HTML-страницу дашборда."""
-    html = _DASHBOARD_PATH.read_text(encoding="utf-8")
-    return HTMLResponse(content=html)
+# ── API Endpoints ──────────────────────────────────────────────
 
 
 @app.get("/api/stats")
