@@ -59,6 +59,11 @@ function cleanLocks(dir: string = AUTH_DIR) {
 }
 
 async function startWhatsApp() {
+    if (process.env.CLEAR_SESSION === 'true') {
+        console.log('Принудительное очищение сессии (CLEAR_SESSION=true)...');
+        clearSessionData();
+    }
+
     cleanLocks();
 
     let puppeteerArgs = [
@@ -68,14 +73,19 @@ async function startWhatsApp() {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--single-process',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-background-timer-throttling'
     ];
     
     client = new Client({
         authStrategy: new LocalAuth(),
         puppeteer: {
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-            args: puppeteerArgs
+            args: puppeteerArgs,
+            dumpio: true
         },
         webVersionCache: {
             type: 'none',
