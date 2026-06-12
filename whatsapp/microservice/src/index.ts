@@ -82,8 +82,7 @@ async function startWhatsApp() {
     });
 
     client.on('qr', (qr: string) => {
-        console.log('Отсканируйте этот QR-код в приложении WhatsApp:');
-        qrcode.generate(qr, { small: true });
+        console.log('Новый QR-код сгенерирован и отправлен на фронтенд (в дашборд)');
         currentStatus = 'QR_READY';
         currentQR = qr;
     });

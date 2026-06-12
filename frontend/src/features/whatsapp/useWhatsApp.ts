@@ -9,7 +9,7 @@ export const useWhatsApp = () => {
         try {
             const data = await apiFetch<any>('/whatsapp/status');
             const currentStatus = data.status?.toUpperCase();
-            if (currentStatus === 'AUTHENTICATED') {
+            if (currentStatus === 'AUTHENTICATED' || currentStatus === 'READY') {
                 setStatus('✅ WhatsApp подключен. Бот готов к работе.');
                 setQrCode(null);
             } else if (currentStatus === 'QR_READY') {
