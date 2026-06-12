@@ -43,7 +43,22 @@ function App() {
                     <span style={{ fontSize: 28, marginRight: 8 }}>🌌</span>
                     AI Центр Диалогов
                 </div>
+                <div className="tab-switcher" style={{ margin: '0 auto' }}>
+                    <button className={`tab-btn ${currentTab === 'chat' ? 'active' : ''}`} onClick={() => setCurrentTab('chat')}>
+                        💬 Диалоги
+                    </button>
+                    <button className={`tab-btn ${currentTab === 'vacancy' ? 'active' : ''}`} onClick={() => setCurrentTab('vacancy')}>
+                        📋 Заявки 
+                        {(stats?.unread_applications ?? 0) > 0 && (
+                            <span className="badge" style={{ background: 'red', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: 10, marginLeft: 4 }}>
+                                {stats!.unread_applications}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
                 <div className="header-stats">
+                    {lastUpdate && <div style={{ fontSize: 12, color: 'var(--text-dim)', marginRight: 8 }}>Обновлено: {lastUpdate}</div>}
                     <div className="stat-card">
                         <div className="stat-label">Всего</div>
                         <div className="stat-value">{stats?.total_users || 0}</div>
@@ -56,29 +71,12 @@ function App() {
                         <div className="stat-label">Сообщений</div>
                         <div className="stat-value">{stats?.today_messages || 0}</div>
                     </div>
-                    <div className="stat-card" style={{ background: 'rgba(255,255,255,0.02)', border: 'none', cursor: 'pointer' }} onClick={() => setIsWaModalOpen(true)}>
+                    <div className="stat-card" style={{ background: 'rgba(255,255,255,0.02)', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: 8 }} onClick={() => setIsWaModalOpen(true)}>
                         <div className="stat-label" style={{ color: '#34d399' }}>Настройки</div>
                         <div className="stat-value" style={{ fontSize: 13, marginTop: 4 }}>WhatsApp &nbsp;⚙️</div>
                     </div>
                 </div>
             </header>
-
-            <div className="tabs">
-                <div className={`tab ${currentTab === 'chat' ? 'active' : ''}`} onClick={() => setCurrentTab('chat')}>
-                    💬 Диалоги
-                </div>
-                <div className={`tab ${currentTab === 'vacancy' ? 'active' : ''}`} onClick={() => setCurrentTab('vacancy')}>
-                    📋 Заявки 
-                    {(stats?.unread_applications ?? 0) > 0 && (
-                        <span className="badge" style={{ background: 'red', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: 10, marginLeft: 4 }}>
-                            {stats!.unread_applications}
-                        </span>
-                    )}
-                </div>
-                <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-dim)', alignSelf: 'center' }}>
-                    {lastUpdate ? `Обновлено в ${lastUpdate}` : ''}
-                </div>
-            </div>
 
             <main className="app-container" style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
                 <aside className={`sidebar ${selectedUser ? 'mobile-hidden' : ''}`}>
