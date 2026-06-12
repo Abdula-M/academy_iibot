@@ -115,7 +115,7 @@ services:
       - whatsapp_data:/app/.wwebjs_auth
     networks:
       - bot-network
-    shm_size: 256mb
+    shm_size: 512mb
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
       interval: 30s

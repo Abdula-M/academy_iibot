@@ -53,8 +53,7 @@ async function startWhatsApp() {
             args: puppeteerArgs
         },
         webVersionCache: {
-            type: 'remote',
-            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+            type: 'none',
         }
     });
 
@@ -68,6 +67,10 @@ async function startWhatsApp() {
     client.on('authenticated', () => {
         currentStatus = 'AUTHENTICATED';
         currentQR = '';
+    });
+
+    client.on('loading_screen', (percent: string, message: string) => {
+        console.log(`[LOADING] ${percent}% - ${message}`);
     });
 
     client.on('ready', async () => {
@@ -151,7 +154,22 @@ async function startWhatsApp() {
     });
 
     console.log('Запуск WhatsApp клиента...');
-    client.initialize();
+    
+    // Таймаут на инициализацию: если за 90 секунд клиент не стартовал — перезапуск
+    const initTimeout = setTimeout(() => {
+        if (currentStatus === 'STARTING') {
+            console.error('TIMEOUT: WhatsApp клиент не запустился за 90 секунд. Перезапуск...');
+            clearSessionData();
+            process.exit(1);
+        }
+    }, 90_000);
+    initTimeout.unref(); // Не блокируем завершение процесса
+
+    client.initialize().catch((err) => {
+        console.error('Ошибка при инициализации WhatsApp клиента:', err);
+        clearSessionData();
+        process.exit(1);
+    });
 }
 
 // Эндпоинт для отправки сообщений из FastAPI в WhatsApp
