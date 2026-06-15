@@ -69,7 +69,10 @@ async function startWhatsApp() {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
     ];
     
     client = new Client({
@@ -126,6 +129,22 @@ async function startWhatsApp() {
         } catch (err) {
             console.error('LID patch injection failed:', err);
         }
+
+        // Watchdog для предотвращения тихого зависания (Silent crash)
+        setInterval(async () => {
+            try {
+                if (currentStatus === 'READY') {
+                    const state = await client.getState();
+                    if (!state) {
+                        console.log('Watchdog: Получен пустой state, перезапуск...');
+                        process.exit(1);
+                    }
+                }
+            } catch (err) {
+                console.error('Watchdog error (вероятно отвал puppeteer/сети):', err);
+                process.exit(1);
+            }
+        }, 60000);
     });
 
     client.on('auth_failure', (msg) => {
