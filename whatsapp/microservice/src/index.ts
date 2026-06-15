@@ -98,6 +98,21 @@ async function startWhatsApp() {
         currentQR = '';
         
         try {
+            if (client.pupPage) {
+                client.pupPage.on('error', (err) => {
+                    console.error('Критическая ошибка браузера (Puppeteer error):', err);
+                    process.exit(1);
+                });
+                client.pupPage.on('close', () => {
+                    console.error('Страница браузера неожиданно закрылась (Puppeteer close)');
+                    process.exit(1);
+                });
+            }
+        } catch (e) {
+            console.error('Failed to attach page listeners:', e);
+        }
+
+        try {
             await client.pupPage?.evaluate(() => {
                 const w = window as any;
                 if (w.mR && w.mR.findModule) {
@@ -130,6 +145,14 @@ async function startWhatsApp() {
         clearSessionData();
         console.log('Перезапуск контейнера для очистки сессии...');
         process.exit(0);
+    });
+
+    client.on('change_state', state => {
+        console.log('Состояние WhatsApp изменилось:', state);
+        if (state === 'CONFLICT' || state === 'UNLAUNCHED' || state === 'TIMEOUT') {
+            console.log('Обнаружен сбой соединения, перезапуск контейнера...');
+            process.exit(1);
+        }
     });
 
     // Обработчик для всех сообщений (включая отправленные с самого телефона) для дебага
