@@ -77,7 +77,7 @@ async function startWhatsApp() {
         puppeteer: {
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
             args: puppeteerArgs,
-            dumpio: true
+            dumpio: false
         }
     });
 
