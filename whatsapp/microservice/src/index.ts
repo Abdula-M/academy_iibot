@@ -178,11 +178,14 @@ async function startWhatsApp() {
         }
 
         try {
-            // Параллельно загружаем контакт и медиа
-            const [contact, media] = await Promise.all([
-                msg.getContact(),
-                (msg.hasMedia && (msg.type === 'ptt' || msg.type === 'audio')) ? msg.downloadMedia() : Promise.resolve(undefined)
-            ]);
+            // Мгновенно достаём имя из кэша (чтобы не ждать getContact(), который может виснуть на 10-15 сек при синхронизации базы)
+            const senderName = (msg as any)._data?.notifyName || undefined;
+
+            // Загружаем медиа (если есть)
+            let media = undefined;
+            if (msg.hasMedia && (msg.type === 'ptt' || msg.type === 'audio')) {
+                media = await msg.downloadMedia();
+            }
             
             let audioBase64: string | undefined;
             if (media) {
@@ -192,7 +195,7 @@ async function startWhatsApp() {
             await axios.post(FASTAPI_WEBHOOK_URL, {
                 chat_id: msg.from,
                 text: msg.body,
-                sender_name: contact.pushname || contact.name || undefined,
+                sender_name: senderName,
                 audio_base64: audioBase64
             }, { timeout: 30000 });
             
