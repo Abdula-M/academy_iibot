@@ -70,7 +70,6 @@ async function startWhatsApp() {
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
-        '--single-process',
         '--renderer-process-limit=1',
         '--disable-extensions',
         '--disable-software-rasterizer',
