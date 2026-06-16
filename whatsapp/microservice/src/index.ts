@@ -112,25 +112,9 @@ async function startWhatsApp() {
                     console.error('Страница браузера неожиданно закрылась (Puppeteer close)');
                     process.exit(1);
                 });
-
-                // Оптимизация процессора: блокируем загрузку тяжелых медиа, шрифтов и стилей
-                await client.pupPage.setRequestInterception(true);
-                client.pupPage.on('request', (req) => {
-                    if (
-                        req.resourceType() === 'image' ||
-                        req.resourceType() === 'stylesheet' ||
-                        req.resourceType() === 'font' ||
-                        req.resourceType() === 'media'
-                    ) {
-                        req.abort();
-                    } else {
-                        req.continue();
-                    }
-                });
-                console.log('Puppeteer оптимизация: загрузка медиа и стилей отключена.');
             }
         } catch (e) {
-            console.error('Failed to attach page listeners and interceptors:', e);
+            console.error('Failed to attach page listeners:', e);
         }
 
         try {
