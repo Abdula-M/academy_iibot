@@ -117,7 +117,7 @@ services:
       - whatsapp_data:/app/.wwebjs_auth
     networks:
       - bot-network
-    shm_size: 256mb
+    shm_size: 512mb
     deploy:
       resources:
         limits:

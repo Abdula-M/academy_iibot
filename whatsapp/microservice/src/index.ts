@@ -74,8 +74,7 @@ async function startWhatsApp() {
         '--disable-extensions',
         '--disable-software-rasterizer',
         '--disable-translate',
-        '--disable-sync',
-        '--js-flags=--max-old-space-size=256'
+        '--disable-sync'
     ];
     
     client = new Client({
