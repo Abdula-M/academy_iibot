@@ -118,6 +118,11 @@ services:
     networks:
       - bot-network
     shm_size: 512mb
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
       interval: 30s
