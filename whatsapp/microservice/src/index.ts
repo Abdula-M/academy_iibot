@@ -69,7 +69,14 @@ async function startWhatsApp() {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--single-process',
+        '--renderer-process-limit=1',
+        '--disable-extensions',
+        '--disable-software-rasterizer',
+        '--disable-translate',
+        '--disable-sync',
+        '--js-flags=--max-old-space-size=256'
     ];
     
     client = new Client({
