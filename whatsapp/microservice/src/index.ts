@@ -117,20 +117,7 @@ async function startWhatsApp() {
             console.error('Failed to attach page listeners:', e);
         }
 
-        try {
-            await client.pupPage?.evaluate(() => {
-                const w = window as any;
-                if (w.mR && w.mR.findModule) {
-                    const lidModule = w.mR.findModule('WAWebLid1X1MigrationGating')[0];
-                    if (lidModule && lidModule.Lid1X1MigrationUtils) {
-                        lidModule.Lid1X1MigrationUtils.isLidMigrated = () => false;
-                        console.log('Patch isLidMigrated applied successfully');
-                    }
-                }
-            });
-        } catch (err) {
-            console.error('LID patch injection failed:', err);
-        }
+
 
         // Watchdog для предотвращения тихого зависания (Silent crash)
         setInterval(async () => {
