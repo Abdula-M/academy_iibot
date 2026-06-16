@@ -178,9 +178,7 @@ async function startWhatsApp() {
 
     // Обработчик для всех сообщений (включая отправленные с самого телефона) для дебага
     client.on('message_create', async (msg) => {
-        if (msg.fromMe) {
-            console.log(`[DEBUG] Отправлено исходящее сообщение (или с этого же аккаунта): ${msg.from} -> ${msg.to}: ${msg.body.substring(0, 50)}`);
-        }
+        console.log(`[DEBUG message_create] from=${msg.from} to=${msg.to} fromMe=${msg.fromMe} type=${msg.type} body=${msg.body.substring(0, 50)}`);
     });
 
     // Слушаем входящие сообщения
