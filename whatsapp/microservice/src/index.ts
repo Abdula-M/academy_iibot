@@ -75,7 +75,7 @@ async function startWhatsApp() {
         '--disable-translate',
         '--disable-sync'
     ];
-    
+
     client = new Client({
         authStrategy: new LocalAuth(),
         puppeteer: {
@@ -100,7 +100,7 @@ async function startWhatsApp() {
         console.log('WhatsApp клиент успешно запущен и готов к работе!');
         currentStatus = 'READY';
         currentQR = '';
-        
+
         try {
             if (client.pupPage) {
                 client.pupPage.on('error', (err) => {
@@ -148,7 +148,7 @@ async function startWhatsApp() {
         console.log('Client was logged out:', reason);
         currentStatus = 'DISCONNECTED';
         currentQR = '';
-        try { await client.destroy(); } catch (e) {}
+        try { await client.destroy(); } catch (e) { }
         clearSessionData();
         console.log('Перезапуск контейнера для очистки сессии...');
         process.exit(0);
@@ -180,19 +180,19 @@ async function startWhatsApp() {
             if (msg.hasMedia && (msg.type === 'ptt' || msg.type === 'audio')) {
                 media = await msg.downloadMedia();
             }
-            
+
             let audioBase64: string | undefined;
             if (media) {
                 audioBase64 = media.data;
             }
-            
+
             await axios.post(FASTAPI_WEBHOOK_URL, {
                 chat_id: msg.from,
                 text: msg.body,
                 sender_name: senderName,
                 audio_base64: audioBase64
             }, { timeout: 30000 });
-            
+
         } catch (error) {
             console.error('Ошибка при отправке вебхука в FastAPI:', error);
         }
@@ -210,14 +210,14 @@ app.post('/send', async (req, res) => {
         }
 
         const { chat_id, text, photo_path, media_path } = req.body;
-        
+
         if (!chat_id || !text) {
             return res.status(400).json({ error: 'chat_id and text are required' });
         }
 
         let media: MessageMedia | undefined;
         const targetMedia = media_path || photo_path;
-        
+
         console.log(`Received request to send message. targetMedia: ${targetMedia}`);
 
         if (targetMedia) {
@@ -232,7 +232,7 @@ app.post('/send', async (req, res) => {
         if (media) {
             const isPdf = targetMedia.toLowerCase().endsWith('.pdf');
             const chat = await client.getChatById(chat_id);
-            await chat.sendMessage(media, { 
+            await chat.sendMessage(media, {
                 caption: text,
                 sendMediaAsDocument: isPdf
             });
@@ -265,12 +265,12 @@ app.post('/logout', async (req, res) => {
         currentStatus = 'STARTING';
         currentQR = '';
         if (client) {
-            try { await client.logout(); } catch(e) {}
-            try { await client.destroy(); } catch(e) {}
+            try { await client.logout(); } catch (e) { }
+            try { await client.destroy(); } catch (e) { }
         }
         clearSessionData();
         res.json({ success: true });
-        
+
         // Выходим из процесса, чтобы Docker поднял его заново с чистым профилем
         setTimeout(() => {
             console.log('Перезапуск контейнера после принудительной отвязки...');
