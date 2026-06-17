@@ -73,7 +73,14 @@ async function startWhatsApp() {
         '--disable-extensions',
         '--disable-software-rasterizer',
         '--disable-translate',
-        '--disable-sync'
+        '--disable-sync',
+        '--disable-default-apps',
+        '--disable-domain-reliability',
+        '--disable-component-update',
+        '--metrics-recording-only',
+        '--js-flags=--max-old-space-size=384',
+        '--disk-cache-size=0',
+        '--media-cache-size=0'
     ];
 
     client = new Client({
@@ -116,7 +123,19 @@ async function startWhatsApp() {
             console.error('Failed to attach page listeners:', e);
         }
 
-
+        // Периодическая очистка кэша браузера для экономии памяти
+        setInterval(async () => {
+            try {
+                if (client.pupPage) {
+                    const cdpSession = await client.pupPage.target().createCDPSession();
+                    await cdpSession.send('Network.clearBrowserCache');
+                    await cdpSession.detach();
+                    console.log('[GC] Кэш браузера очищен');
+                }
+            } catch (e) {
+                // Игнорируем ошибки очистки кэша
+            }
+        }, 5 * 60 * 1000); // Каждые 5 минут
 
         // Watchdog для предотвращения тихого зависания (Silent crash)
         setInterval(async () => {
@@ -285,6 +304,17 @@ app.post('/logout', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Express сервер запущен на порту ${PORT}`);
     startWhatsApp().catch(console.error);
+});
+
+// Ловим необработанные ошибки, чтобы контейнер гарантированно перезапустился
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    process.exit(1);
 });
 
 // Graceful shutdown

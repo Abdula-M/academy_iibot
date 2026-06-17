@@ -133,7 +133,7 @@ services:
       resources:
         limits:
           cpus: "1.2"      # Ограничиваем использование максимум 1.2 ядрами CPU
-          memory: 1G       # Ограничиваем память до 1 ГБ
+          memory: 1G       # Сервер имеет всего 2 ГБ RAM
 
   # ── Frontend (React Dashboard) ─────────────────────────────
   frontend:
