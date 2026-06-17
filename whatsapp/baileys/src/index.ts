@@ -70,15 +70,17 @@ function isImageFile(filePath: string): boolean {
 // ── Основная функция подключения к WhatsApp ──────────────────
 async function startWhatsApp(): Promise<void> {
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+    const { version } = await fetchLatestBaileysVersion();
+    console.log(`Используем WA версию: ${version.join('.')}`);
 
     sock = makeWASocket({
+        version,
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, logger)
         },
-        printQRInTerminal: true,
         logger,
-        browser: ['Academy Bot', 'Chrome', '120.0.0'],
+        browser: ['Ubuntu', 'Chrome', '120.0.0'],
         generateHighQualityLinkPreview: false,
     });
 
@@ -90,9 +92,17 @@ async function startWhatsApp(): Promise<void> {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log('Новый QR-код сгенерирован и отправлен на фронтенд');
+            console.log('Новый QR-код сгенерирован');
             currentStatus = 'QR_READY';
             currentQR = qr;
+            // Выводим QR в терминал для удобства
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const qrTerminal = require('qrcode-terminal');
+                qrTerminal.generate(qr, { small: true });
+            } catch (e) {
+                console.log('QR строка (для дашборда):', qr.substring(0, 50) + '...');
+            }
         }
 
         if (connection === 'open') {
@@ -117,7 +127,8 @@ async function startWhatsApp(): Promise<void> {
 
             if (shouldReconnect) {
                 currentStatus = 'RECONNECTING';
-                console.log('Переподключение к WhatsApp...');
+                console.log('Переподключение к WhatsApp через 3 секунды...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 await startWhatsApp();
             }
         }
