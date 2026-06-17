@@ -188,7 +188,7 @@ async def api_messages_reply(telegram_id: int, payload: ReplyPayload) -> dict[st
         try:
             if user.platform == "whatsapp":
                 from whatsapp.api import send_whatsapp_message
-                chat_id = f"{telegram_id}@c.us"
+                chat_id = f"{telegram_id}@s.whatsapp.net"
                 await send_whatsapp_message(chat_id, full_text)
             elif user.platform == "instagram":
                 from instagram.api import send_instagram_message

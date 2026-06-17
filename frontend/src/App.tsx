@@ -28,9 +28,19 @@ function App() {
     const [isSending, setIsSending] = useState(false);
 
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
+    const scrolledUserRef = React.useRef<number | null>(null);
 
     React.useEffect(() => {
         if (messages.length === 0) return;
+
+        // Только если это первый рендер сообщений для данного пользователя
+        if (selectedUser && scrolledUserRef.current === selectedUser.telegram_id) {
+            return;
+        }
+
+        if (selectedUser) {
+            scrolledUserRef.current = selectedUser.telegram_id;
+        }
 
         if (selectedUser && selectedUser.msg_count > 0) {
             const firstUnreadEl = document.getElementById('first-unread-message');
@@ -41,7 +51,7 @@ function App() {
         }
 
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, selectedUser]);
 
     React.useEffect(() => {
         loadStatus();
@@ -71,9 +81,6 @@ function App() {
         try {
             await sendMessage(replyText.trim());
             setReplyText('');
-            setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
         } catch (e) {
             alert('Ошибка при отправке сообщения');
         } finally {
@@ -242,7 +249,7 @@ function App() {
                                         );
                                     })
                                 )}
-                                <div ref={messagesEndRef} />
+                                <div ref={messagesEndRef} style={{ height: 24, flexShrink: 0 }} />
                             </div>
                             <div className="chat-input-area">
                                 <input 
