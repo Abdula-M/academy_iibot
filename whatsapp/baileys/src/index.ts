@@ -165,6 +165,12 @@ async function startWhatsApp(): Promise<void> {
                 console.log(`[DEBUG] Сообщение проигнорировано (status или группа)`);
                 continue;
             }
+            try {
+                // Отмечаем сообщение как прочитанное (синие галочки)
+                await sock!.readMessages([msg.key]);
+            } catch (e) {
+                // Не критично если не удалось отметить
+            }
 
             try {
                 // Имя отправителя
