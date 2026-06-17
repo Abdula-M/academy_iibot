@@ -49,9 +49,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M                   # Запас для 1 async воркера (кушает ~80MB RAM)
+          memory: 256M                   # FastAPI ~80-120MB, 256M — с запасом
         reservations:
-          memory: 128M
+          memory: 64M
 
   # ── PostgreSQL ─────────────────────────────────────────────
   postgres:
@@ -74,6 +74,10 @@ services:
       start_period: 10s
     networks:
       - bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M                   # PostgreSQL Alpine ~100-150MB
 
   # ── Redis ──────────────────────────────────────────────────
   redis:
@@ -82,7 +86,7 @@ services:
     restart: unless-stopped
     command: >
       redis-server
-        --maxmemory 128mb
+        --maxmemory 64mb
         --maxmemory-policy allkeys-lru
         --appendonly yes
     ports:
@@ -97,6 +101,10 @@ services:
       start_period: 5s
     networks:
       - bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 96M                    # Redis с maxmemory 64mb
 
   # ── WhatsApp Microservice ──────────────────────────────────
   whatsapp:
@@ -117,7 +125,7 @@ services:
       - whatsapp_data:/app/.wwebjs_auth
     networks:
       - bot-network
-    shm_size: 512mb
+    shm_size: 256mb
     logging:
       driver: "json-file"
       options:
@@ -132,8 +140,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.2"      # Ограничиваем использование максимум 1.2 ядрами CPU
-          memory: 1G       # Сервер имеет всего 2 ГБ RAM
+          cpus: "1.0"
+          memory: 768M     # Chromium + WhatsApp Web (сервер 2 ГБ)
 
   # ── Frontend (React Dashboard) ─────────────────────────────
   frontend:
@@ -144,6 +152,10 @@ services:
     restart: unless-stopped
     networks:
       - bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
   caddy:
     image: caddy:2-alpine
     container_name: ai-bot-caddy
@@ -157,6 +169,10 @@ services:
       - caddy_config:/config
     networks:
       - bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
 
 # ── Volumes ──────────────────────────────────────────────────
 volumes:
