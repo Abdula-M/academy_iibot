@@ -32,12 +32,12 @@ function App() {
         if (selectedUser && selectedUser.msg_count > 0) {
             const firstUnreadEl = document.getElementById('first-unread-message');
             if (firstUnreadEl) {
-                firstUnreadEl.scrollIntoView({ behavior: 'smooth' });
+                firstUnreadEl.scrollIntoView({ behavior: 'auto' });
                 return;
             }
         }
 
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }, [messages]);
 
     React.useEffect(() => {
