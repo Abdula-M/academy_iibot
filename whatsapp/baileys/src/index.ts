@@ -29,6 +29,7 @@ const logger = pino({ level: process.env.LOG_LEVEL || 'silent' });
 let currentStatus = 'STARTING';
 let currentQR = '';
 let sock: WASocket | null = null;
+let reconnectAttempts = 0;
 
 // ── Очистка сессии ───────────────────────────────────────────
 function clearSessionData(): void {
@@ -109,6 +110,7 @@ async function startWhatsApp(): Promise<void> {
             console.log('WhatsApp клиент успешно запущен и готов к работе!');
             currentStatus = 'READY';
             currentQR = '';
+            reconnectAttempts = 0;
         }
 
         if (connection === 'close') {
@@ -126,8 +128,13 @@ async function startWhatsApp(): Promise<void> {
             }
 
             if (shouldReconnect) {
+                reconnectAttempts++;
+                if (reconnectAttempts > 10) {
+                    console.error('Слишком много неудачных попыток переподключения. Выход для перезапуска Docker-контейнера...');
+                    process.exit(1);
+                }
                 currentStatus = 'RECONNECTING';
-                console.log('Переподключение к WhatsApp через 3 секунды...');
+                console.log(`Переподключение к WhatsApp через 3 секунды (попытка ${reconnectAttempts})...`);
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 await startWhatsApp();
             }
@@ -145,6 +152,17 @@ async function startWhatsApp(): Promise<void> {
 
             const from = msg.key.remoteJid;
             if (!from) continue;
+
+            // Игнорируем старые сообщения (старше 5 минут)
+            // Это предотвращает спам вебхуками, если бот был оффлайн и накопил очередь
+            const msgTimestamp = Number(msg.messageTimestamp);
+            if (msgTimestamp) {
+                const now = Math.floor(Date.now() / 1000);
+                if (now - msgTimestamp > 300) {
+                    console.log(`[DEBUG] Пропущено старое сообщение от ${from} (возраст: ${now - msgTimestamp} сек)`);
+                    continue;
+                }
+            }
 
             // Извлекаем текст из разных типов сообщений
             const messageContent = msg.message;
@@ -232,11 +250,17 @@ app.post('/send', async (req: Request, res: Response) => {
         const targetMedia = media_path || photo_path;
         console.log(`Received request to send message. targetMedia: ${targetMedia}`);
 
+        // Имитируем набор текста / запись для реалистичности
+        try {
+            await sock.sendPresenceUpdate('composing', chat_id);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        } catch (e) { /* ignore */ }
+
         if (targetMedia && fs.existsSync(targetMedia)) {
             try {
                 const mimetype = getMimeType(targetMedia);
-                const isPdf = targetMedia.toLowerCase().endsWith('.pdf');
                 const isImage = isImageFile(targetMedia);
+                const isAudio = targetMedia.toLowerCase().endsWith('.ogg') || targetMedia.toLowerCase().endsWith('.mp3');
 
                 if (isImage) {
                     // Отправляем как изображение с подписью
@@ -244,6 +268,17 @@ app.post('/send', async (req: Request, res: Response) => {
                         image: { url: targetMedia },
                         caption: text
                     });
+                } else if (isAudio) {
+                    // Отправляем как голосовое сообщение (Voice Note)
+                    await sock.sendPresenceUpdate('recording', chat_id);
+                    await sock.sendMessage(chat_id, {
+                        audio: { url: targetMedia },
+                        mimetype: 'audio/ogg; codecs=opus',
+                        ptt: true
+                    });
+                    if (text && text.trim() !== '') {
+                        await sock.sendMessage(chat_id, { text });
+                    }
                 } else {
                     // Отправляем как документ
                     await sock.sendMessage(chat_id, {
@@ -264,6 +299,10 @@ app.post('/send', async (req: Request, res: Response) => {
             await sock.sendMessage(chat_id, { text });
             console.log('Message (text only) sent successfully.');
         }
+
+        try {
+            await sock.sendPresenceUpdate('paused', chat_id);
+        } catch (e) { /* ignore */ }
 
         res.json({ success: true });
     } catch (error) {
