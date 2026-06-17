@@ -20,13 +20,26 @@ function App() {
 
     const { stats, lastUpdate, reloadStats } = useStats();
     const { users, reloadUsers } = useUsers();
-    const { messages, loading: chatLoading, reloadMessages } = useChat(selectedUser ? selectedUser.telegram_id : null);
+    const { messages, loading: chatLoading, reloadMessages, sendMessage } = useChat(selectedUser ? selectedUser.telegram_id : null);
     const { vacancies, markAsRead } = useVacancies();
     const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
+
+    const [replyText, setReplyText] = useState('');
+    const [isSending, setIsSending] = useState(false);
 
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
+        if (messages.length === 0) return;
+
+        if (selectedUser && selectedUser.msg_count > 0) {
+            const firstUnreadEl = document.getElementById('first-unread-message');
+            if (firstUnreadEl) {
+                firstUnreadEl.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+        }
+
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
@@ -49,6 +62,29 @@ function App() {
             markAsRead(app.id).then(() => {
                 reloadStats();
             });
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!replyText.trim() || !selectedUser) return;
+        setIsSending(true);
+        try {
+            await sendMessage(replyText.trim());
+            setReplyText('');
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        } catch (e) {
+            alert('Ошибка при отправке сообщения');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
@@ -185,22 +221,46 @@ function App() {
                                         if (msgDate === today) displayDate = 'Сегодня';
                                         else if (msgDate === yesterday) displayDate = 'Вчера';
 
+                                        const isFirstUnread = selectedUser && selectedUser.msg_count > 0 && idx === Math.max(0, messages.length - selectedUser.msg_count);
+                                        const isOperator = !msg.question && msg.answer.startsWith('[Оператор]');
+
                                         return (
                                             <React.Fragment key={idx}>
+                                                {isFirstUnread && <div id="first-unread-message" />}
                                                 {showDate && <div className="date-divider"><span>{displayDate}</span></div>}
-                                                <div className="msg-wrapper user">
-                                                    <div className="msg-bubble">{msg.question}</div>
-                                                    <div className="msg-time">{formatTime(msg.created_at)}</div>
-                                                </div>
-                                                <div className="msg-wrapper bot">
+                                                {msg.question && (
+                                                    <div className="msg-wrapper user">
+                                                        <div className="msg-bubble">{msg.question}</div>
+                                                        <div className="msg-time">{formatTime(msg.created_at)}</div>
+                                                    </div>
+                                                )}
+                                                <div className={`msg-wrapper bot ${isOperator ? 'operator' : ''}`}>
                                                     <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: formatBotAnswer(msg.answer) }} />
-                                                    <div className="msg-time">Ассистент</div>
+                                                    <div className="msg-time">{isOperator ? 'Оператор' : 'Ассистент'}</div>
                                                 </div>
                                             </React.Fragment>
                                         );
                                     })
                                 )}
                                 <div ref={messagesEndRef} />
+                            </div>
+                            <div className="chat-input-area">
+                                <input 
+                                    type="text" 
+                                    className="chat-input" 
+                                    placeholder="Написать сообщение..." 
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    disabled={isSending}
+                                />
+                                <button 
+                                    className="send-btn" 
+                                    onClick={handleSendMessage}
+                                    disabled={!replyText.trim() || isSending}
+                                >
+                                    {isSending ? '...' : 'Отправить'}
+                                </button>
                             </div>
                         </>
                     ) : (
