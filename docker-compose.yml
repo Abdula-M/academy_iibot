@@ -106,42 +106,37 @@ services:
         limits:
           memory: 96M                    # Redis с maxmemory 64mb
 
-  # ── WhatsApp Microservice ──────────────────────────────────
+  # ── WhatsApp Microservice (Baileys — без Chromium) ───────────
   whatsapp:
     build:
       context: .
-      dockerfile: whatsapp/microservice/Dockerfile
-    image: ai-whatsapp-image:v3
+      dockerfile: whatsapp/baileys/Dockerfile
+    image: ai-whatsapp-baileys:v1
     container_name: ai-bot-whatsapp
     restart: unless-stopped
-    # env_file: .env
     environment:
       - WEBHOOK_URL=http://bot:8000/api/whatsapp/webhook
-      - CLEAR_SESSION=${CLEAR_SESSION:-false}
-      # - DEBUG=puppeteer:*
     ports:
       - "3005:3000"
     volumes:
-      - whatsapp_data:/app/.wwebjs_auth
+      - whatsapp_baileys_data:/app/.baileys_auth
     networks:
       - bot-network
-    shm_size: 256mb
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/status"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 768M     # Chromium + WhatsApp Web (сервер 2 ГБ)
+          memory: 256M     # Baileys: ~50-100MB (без Chromium)
 
   # ── Frontend (React Dashboard) ─────────────────────────────
   frontend:
@@ -181,6 +176,8 @@ volumes:
   redis_data:
     driver: local
   whatsapp_data:
+    driver: local
+  whatsapp_baileys_data:
     driver: local
   caddy_data:
     driver: local
