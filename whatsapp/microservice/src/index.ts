@@ -181,17 +181,30 @@ async function startWhatsApp() {
         }
     });
 
-    // Слушаем входящие сообщения (message_create стабильнее чем message для личных чатов)
-    client.on('message_create', async (msg) => {
+    // Дедупликация: оба события могут сработать для одного сообщения
+    const processedMessages = new Set<string>();
+
+    // Общий обработчик входящих сообщений
+    const handleIncoming = async (msg: any, eventName: string) => {
         // Игнорируем свои исходящие сообщения
         if (msg.fromMe) return;
 
-        console.log(`[DEBUG] Входящее сообщение от ${msg.from}: ${msg.body.substring(0, 50)} (type: ${msg.type})`);
+        console.log(`[${eventName}] Входящее сообщение от ${msg.from}: ${msg.body?.substring(0, 50)} (type: ${msg.type})`);
         // Игнорируем сообщения из групп и статусы
         if (msg.isStatus || msg.from.endsWith('@g.us')) {
-            console.log(`[DEBUG] Сообщение проигнорировано (status или группа)`);
+            console.log(`[${eventName}] Сообщение проигнорировано (status или группа)`);
             return;
         }
+
+        // Дедупликация: пропускаем если уже обработано другим событием
+        const msgId = msg.id?._serialized || msg.id?.id || String(msg.timestamp);
+        if (processedMessages.has(msgId)) {
+            console.log(`[${eventName}] Дубликат, уже обработан`);
+            return;
+        }
+        processedMessages.add(msgId);
+        // Чистим через 30 секунд чтобы Set не рос бесконечно
+        setTimeout(() => processedMessages.delete(msgId), 30000);
 
         try {
             // Мгновенно достаём имя из кэша (чтобы не ждать getContact(), который может виснуть на 10-15 сек при синхронизации базы)
@@ -218,7 +231,12 @@ async function startWhatsApp() {
         } catch (error) {
             console.error('Ошибка при отправке вебхука в FastAPI:', error);
         }
-    });
+    };
+
+    // Подписываемся на ОБА события для диагностики
+    // (потом уберём лишний, когда выясним какой работает для ЛС)
+    client.on('message', (msg) => handleIncoming(msg, 'message'));
+    client.on('message_create', (msg) => handleIncoming(msg, 'message_create'));
 
     console.log('Запуск WhatsApp клиента...');
     client.initialize();
