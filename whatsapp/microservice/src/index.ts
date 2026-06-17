@@ -181,8 +181,11 @@ async function startWhatsApp() {
         }
     });
 
-    // Слушаем входящие сообщения
-    client.on('message', async (msg) => {
+    // Слушаем входящие сообщения (message_create стабильнее чем message для личных чатов)
+    client.on('message_create', async (msg) => {
+        // Игнорируем свои исходящие сообщения
+        if (msg.fromMe) return;
+
         console.log(`[DEBUG] Входящее сообщение от ${msg.from}: ${msg.body.substring(0, 50)} (type: ${msg.type})`);
         // Игнорируем сообщения из групп и статусы
         if (msg.isStatus || msg.from.endsWith('@g.us')) {
