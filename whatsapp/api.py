@@ -154,31 +154,6 @@ async def _handle_whatsapp_message(msg: WhatsAppMessage):
         logger.error("Не удалось подключиться к WhatsApp сервису: %s", e)
 
 
-async def send_whatsapp_message(chat_id: str, text: str) -> None:
-    """Отправка текстового сообщения в WhatsApp через Node.js микросервис."""
-    try:
-        session = await get_http_session()
-        wa_text = text
-        wa_text = wa_text.replace('<b>', '*').replace('</b>', '*')
-        wa_text = wa_text.replace('<strong>', '*').replace('</strong>', '*')
-        wa_text = wa_text.replace('<i>', '_').replace('</i>', '_')
-        wa_text = wa_text.replace('<em>', '_').replace('</em>', '_')
-        wa_text = wa_text.replace('<br>', '\n').replace('</br>', '\n')
-        wa_text = re.sub(r'<[^>]+>', '', wa_text)
-
-        payload = {
-            "chat_id": chat_id,
-            "text": wa_text,
-        }
-        timeout = aiohttp.ClientTimeout(total=30)
-        async with session.post(WHATSAPP_SERVICE_URL, json=payload, timeout=timeout) as resp:
-            if resp.status != 200:
-                error_text = await resp.text()
-                logger.error("Ошибка при ручной отправке в WhatsApp: %s", error_text)
-    except Exception as e:
-        logger.error("Не удалось подключиться к WhatsApp сервису при ручной отправке: %s", e)
-
-
 @whatsapp_router.post("/webhook")
 async def whatsapp_webhook(msg: WhatsAppMessage, background_tasks: BackgroundTasks):
     """Эндпоинт для входящих сообщений из WhatsApp."""

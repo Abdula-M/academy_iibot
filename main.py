@@ -14,9 +14,8 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 
 from aiogram.types import Update
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from telegram.create import bot, dp
 from telegram.handlers.user import router as user_router
@@ -33,8 +32,6 @@ from common.database.crud import (
     mark_messages_read,
     mark_vacancy_application_read,
     get_unread_applications_count,
-    get_user_by_telegram_id,
-    log_message,
 )
 from common.database.models import Base
 from common.database.session import async_engine, async_session_factory
@@ -170,44 +167,6 @@ async def api_messages_user(telegram_id: int) -> list[dict[str, str]]:
         # Помечаем сообщения как прочитанные при открытии диалога
         await mark_messages_read(session, telegram_id)
         return await get_messages_by_user(session, telegram_id=telegram_id)
-
-
-class ReplyPayload(BaseModel):
-    text: str
-
-@app.post("/api/messages/{telegram_id}/reply")
-async def api_messages_reply(telegram_id: int, payload: ReplyPayload) -> dict[str, bool]:
-    """Ручной ответ пользователю из дашборда."""
-    async with async_session_factory() as session:
-        user = await get_user_by_telegram_id(session, telegram_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        full_text = f"[Оператор]\n{payload.text}"
-            
-        try:
-            if user.platform == "whatsapp":
-                from whatsapp.api import send_whatsapp_message
-                chat_id = f"{telegram_id}@s.whatsapp.net"
-                await send_whatsapp_message(chat_id, full_text)
-            elif user.platform == "instagram":
-                from instagram.api import send_instagram_message
-                await send_instagram_message(str(telegram_id), full_text)
-            elif user.platform == "max":
-                from max_messenger.api import send_max_message
-                await send_max_message(telegram_id, full_text)
-            else:
-                # По умолчанию telegram
-                await bot.send_message(chat_id=telegram_id, text=full_text)
-                
-            # Сохраняем в БД как ответ бота (question пустой)
-            await log_message(session, user_id=user.id, telegram_id=telegram_id, question="", answer=full_text)
-            await session.commit()
-            
-            return {"ok": True}
-        except Exception as e:
-            logger.error("Ошибка при ручном ответе: %s", e)
-            raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/vacancy-applications")

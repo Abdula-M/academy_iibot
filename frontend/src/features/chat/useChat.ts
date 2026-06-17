@@ -19,24 +19,9 @@ export const useChat = (telegramId: number | null) => {
         }
     };
 
-    const sendMessage = async (text: string) => {
-        if (!telegramId) return;
-        try {
-            await apiFetch(`/messages/${telegramId}/reply`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text }),
-            });
-            await loadMessages();
-        } catch (err) {
-            console.error('Ошибка отправки сообщения', err);
-            throw err;
-        }
-    };
-
     useEffect(() => {
         loadMessages();
     }, [telegramId]);
 
-    return { messages, loading, reloadMessages: loadMessages, sendMessage };
+    return { messages, loading, reloadMessages: loadMessages };
 };

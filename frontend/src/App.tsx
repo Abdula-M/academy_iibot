@@ -20,27 +20,14 @@ function App() {
 
     const { stats, lastUpdate, reloadStats } = useStats();
     const { users, reloadUsers } = useUsers();
-    const { messages, loading: chatLoading, reloadMessages, sendMessage } = useChat(selectedUser ? selectedUser.telegram_id : null);
+    const { messages, loading: chatLoading, reloadMessages } = useChat(selectedUser ? selectedUser.telegram_id : null);
     const { vacancies, markAsRead } = useVacancies();
     const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
 
-    const [replyText, setReplyText] = useState('');
-    const [isSending, setIsSending] = useState(false);
-
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
-    const scrolledUserRef = React.useRef<number | null>(null);
 
     React.useEffect(() => {
         if (messages.length === 0) return;
-
-        // Только если это первый рендер сообщений для данного пользователя
-        if (selectedUser && scrolledUserRef.current === selectedUser.telegram_id) {
-            return;
-        }
-
-        if (selectedUser) {
-            scrolledUserRef.current = selectedUser.telegram_id;
-        }
 
         if (selectedUser && selectedUser.msg_count > 0) {
             const firstUnreadEl = document.getElementById('first-unread-message');
@@ -51,7 +38,7 @@ function App() {
         }
 
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, selectedUser]);
+    }, [messages]);
 
     React.useEffect(() => {
         loadStatus();
@@ -72,26 +59,6 @@ function App() {
             markAsRead(app.id).then(() => {
                 reloadStats();
             });
-        }
-    };
-
-    const handleSendMessage = async () => {
-        if (!replyText.trim() || !selectedUser) return;
-        setIsSending(true);
-        try {
-            await sendMessage(replyText.trim());
-            setReplyText('');
-        } catch (e) {
-            alert('Ошибка при отправке сообщения');
-        } finally {
-            setIsSending(false);
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleSendMessage();
         }
     };
 
@@ -229,45 +196,23 @@ function App() {
                                         else if (msgDate === yesterday) displayDate = 'Вчера';
 
                                         const isFirstUnread = selectedUser && selectedUser.msg_count > 0 && idx === Math.max(0, messages.length - selectedUser.msg_count);
-                                        const isOperator = !msg.question && msg.answer.startsWith('[Оператор]');
-
                                         return (
                                             <React.Fragment key={idx}>
                                                 {isFirstUnread && <div id="first-unread-message" />}
                                                 {showDate && <div className="date-divider"><span>{displayDate}</span></div>}
-                                                {msg.question && (
-                                                    <div className="msg-wrapper user">
-                                                        <div className="msg-bubble">{msg.question}</div>
-                                                        <div className="msg-time">{formatTime(msg.created_at)}</div>
-                                                    </div>
-                                                )}
-                                                <div className={`msg-wrapper bot ${isOperator ? 'operator' : ''}`}>
+                                                <div className="msg-wrapper user">
+                                                    <div className="msg-bubble">{msg.question}</div>
+                                                    <div className="msg-time">{formatTime(msg.created_at)}</div>
+                                                </div>
+                                                <div className="msg-wrapper bot">
                                                     <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: formatBotAnswer(msg.answer) }} />
-                                                    <div className="msg-time">{isOperator ? 'Оператор' : 'Ассистент'}</div>
+                                                    <div className="msg-time">Ассистент</div>
                                                 </div>
                                             </React.Fragment>
                                         );
                                     })
                                 )}
-                                <div ref={messagesEndRef} style={{ height: 24, flexShrink: 0 }} />
-                            </div>
-                            <div className="chat-input-area">
-                                <input 
-                                    type="text" 
-                                    className="chat-input" 
-                                    placeholder="Написать сообщение..." 
-                                    value={replyText}
-                                    onChange={(e) => setReplyText(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    disabled={isSending}
-                                />
-                                <button 
-                                    className="send-btn" 
-                                    onClick={handleSendMessage}
-                                    disabled={!replyText.trim() || isSending}
-                                >
-                                    {isSending ? '...' : 'Отправить'}
-                                </button>
+                                <div ref={messagesEndRef} />
                             </div>
                         </>
                     ) : (
