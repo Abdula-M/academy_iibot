@@ -131,26 +131,21 @@ async def _upload_photo_to_max(photo_path: str) -> str | None:
             result = await resp.json()
 
         # Извлекаем token из ответа
-        # Для image token может быть в разных местах
+        # MAX возвращает: {"photos": {"<hash>": {"token": "..."}}}
         photo_token = None
         if "token" in result:
             photo_token = result["token"]
         elif "photos" in result and result["photos"]:
-            # Некоторые версии API возвращают {"photos": {"token": "..."}}
             photos = result["photos"]
-            if isinstance(photos, dict) and "token" in photos:
-                photo_token = photos["token"]
-            elif isinstance(photos, list) and photos:
-                photo_token = photos[0].get("token")
-
-        if not photo_token:
-            # Попробуем извлечь token из upload URL
-            # Для image URL содержит token в параметрах
-            from urllib.parse import urlparse, parse_qs
-            parsed = urlparse(upload_url)
-            qs = parse_qs(parsed.query)
-            if "token" in qs:
-                photo_token = qs["token"][0]
+            if isinstance(photos, dict):
+                # Берём token из первого значения словаря
+                for _key, value in photos.items():
+                    if isinstance(value, dict) and "token" in value:
+                        photo_token = value["token"]
+                        break
+                    elif _key == "token":
+                        photo_token = value
+                        break
 
         if not photo_token:
             logger.error("Не удалось извлечь token из ответа MAX: %s", result)
