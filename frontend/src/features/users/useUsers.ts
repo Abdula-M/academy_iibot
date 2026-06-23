@@ -13,8 +13,10 @@ export const useUsers = () => {
     const loadUsers = useCallback(async () => {
         try {
             const data = await apiFetch<PaginatedResponse<User>>(`/users?offset=0&limit=${PAGE_SIZE}`);
-            setUsers(data.items);
-            setTotal(data.total);
+            const items = Array.isArray(data) ? data : (data.items ?? []);
+            const count = Array.isArray(data) ? data.length : (data.total ?? 0);
+            setUsers(items);
+            setTotal(count);
         } catch (err) {
             console.error('Ошибка загрузки пользователей', err);
         } finally {
@@ -29,8 +31,10 @@ export const useUsers = () => {
             const data = await apiFetch<PaginatedResponse<User>>(
                 `/users?offset=${users.length}&limit=${PAGE_SIZE}`,
             );
-            setUsers(prev => [...prev, ...data.items]);
-            setTotal(data.total);
+            const items = Array.isArray(data) ? data : (data.items ?? []);
+            const count = Array.isArray(data) ? data.length : (data.total ?? 0);
+            setUsers(prev => [...prev, ...items]);
+            setTotal(count);
         } catch (err) {
             console.error('Ошибка подгрузки пользователей', err);
         } finally {

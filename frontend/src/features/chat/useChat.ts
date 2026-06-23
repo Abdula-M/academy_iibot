@@ -18,8 +18,10 @@ export const useChat = (telegramId: number | null) => {
             const data = await apiFetch<PaginatedResponse<Message>>(
                 `/messages/${telegramId}?offset=0&limit=${PAGE_SIZE}`,
             );
-            setMessages(data.items);
-            setTotal(data.total);
+            const items = Array.isArray(data) ? data : (data.items ?? []);
+            const count = Array.isArray(data) ? data.length : (data.total ?? 0);
+            setMessages(items);
+            setTotal(count);
         } catch (err) {
             console.error('Ошибка загрузки сообщений', err);
         } finally {
@@ -34,8 +36,9 @@ export const useChat = (telegramId: number | null) => {
             const data = await apiFetch<PaginatedResponse<Message>>(
                 `/messages/${telegramId}?offset=${messages.length}&limit=${PAGE_SIZE}`,
             );
+            const items = Array.isArray(data) ? data : (data.items ?? []);
             // Старые сообщения добавляются в начало (они хронологически раньше)
-            setMessages(prev => [...data.items, ...prev]);
+            setMessages(prev => [...items, ...prev]);
         } catch (err) {
             console.error('Ошибка подгрузки старых сообщений', err);
         } finally {

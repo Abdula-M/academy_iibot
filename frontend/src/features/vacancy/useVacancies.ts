@@ -15,8 +15,10 @@ export const useVacancies = () => {
             const data = await apiFetch<PaginatedResponse<VacancyApplication>>(
                 `/vacancy-applications?offset=0&limit=${PAGE_SIZE}`,
             );
-            setVacancies(data.items);
-            setTotal(data.total);
+            const items = Array.isArray(data) ? data : (data.items ?? []);
+            const count = Array.isArray(data) ? data.length : (data.total ?? 0);
+            setVacancies(items);
+            setTotal(count);
         } catch (err) {
             console.error('Ошибка загрузки заявок', err);
         } finally {
@@ -31,8 +33,10 @@ export const useVacancies = () => {
             const data = await apiFetch<PaginatedResponse<VacancyApplication>>(
                 `/vacancy-applications?offset=${vacancies.length}&limit=${PAGE_SIZE}`,
             );
-            setVacancies(prev => [...prev, ...data.items]);
-            setTotal(data.total);
+            const items = Array.isArray(data) ? data : (data.items ?? []);
+            const count = Array.isArray(data) ? data.length : (data.total ?? 0);
+            setVacancies(prev => [...prev, ...items]);
+            setTotal(count);
         } catch (err) {
             console.error('Ошибка подгрузки заявок', err);
         } finally {
