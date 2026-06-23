@@ -110,7 +110,7 @@ async def handle_voice_message(message: Message, state: FSMContext) -> None:
     if message.from_user is None or not message.voice or not message.bot:
         return
 
-    thinking_msg = await message.answer("🎧 <b>Слушаю...</b>")
+    chat_id = message.chat.id
 
     # Скачиваем файл
     file_id = message.voice.file_id
@@ -119,11 +119,11 @@ async def handle_voice_message(message: Message, state: FSMContext) -> None:
         file_path = file.file_path
     except Exception as e:
         logger.error("Ошибка при получении голосового сообщения: %s", e)
-        await message.bot.edit_message_text("⚠️ Ошибка: не удалось получить аудиофайл.", chat_id=thinking_msg.chat.id, message_id=thinking_msg.message_id)
+        await message.answer("⚠️ Ошибка: не удалось получить аудиофайл.")
         return
 
     if not file_path:
-        await message.bot.edit_message_text("⚠️ Ошибка: пустой путь аудиофайла.", chat_id=thinking_msg.chat.id, message_id=thinking_msg.message_id)
+        await message.answer("⚠️ Ошибка: пустой путь аудиофайла.")
         return
 
     # Сохраняем в память (BytesIO) без использования диска
@@ -140,18 +140,10 @@ async def handle_voice_message(message: Message, state: FSMContext) -> None:
         transcribed_text = None
             
     if not transcribed_text:
-        await message.bot.edit_message_text(
-            "Извините, я не смог разобрать ваше голосовое сообщение. Пожалуйста, напишите текстом или запишите еще раз.", 
-            chat_id=thinking_msg.chat.id, 
-            message_id=thinking_msg.message_id
+        await message.answer(
+            "Извините, я не смог разобрать ваше голосовое сообщение. Пожалуйста, напишите текстом или запишите еще раз."
         )
         return
-
-    await message.bot.edit_message_text(
-        f"🗣 <b>Вы сказали:</b> <i>{transcribed_text}</i>\n\n🤔 <b>Думаю...</b>", 
-        chat_id=thinking_msg.chat.id, 
-        message_id=thinking_msg.message_id
-    )
 
     # Вызываем AI логику
     state_data = await state.get_data()
@@ -161,8 +153,7 @@ async def handle_voice_message(message: Message, state: FSMContext) -> None:
     asyncio.create_task(
         _process_ai_query(
             user_query=transcribed_text,
-            chat_id=thinking_msg.chat.id,
-            message_id=thinking_msg.message_id,
+            chat_id=chat_id,
             bot=message.bot,
             state=state,
             history=history,
@@ -180,8 +171,7 @@ async def handle_text_message(message: Message, state: FSMContext) -> None:
     """Обработка произвольного текстового сообщения.
 
     1. Получает историю диалога из FSM-хранилища Redis.
-    2. Мгновенно отправляет «Думаю...».
-    3. Запускает фоновую задачу для RAG-поиска, запроса к LLM и сохранения памяти.
+    2. Запускает фоновую задачу для RAG-поиска, запроса к LLM и сохранения памяти.
     """
     if not message.text or message.from_user is None:
         return
@@ -191,13 +181,10 @@ async def handle_text_message(message: Message, state: FSMContext) -> None:
     history = state_data.get("history", [])
     sent_photos: list[str] = state_data.get("sent_photos", [])
 
-    thinking_msg = await message.answer("🤔 <b>Думаю...</b>")
-
     asyncio.create_task(
         _process_ai_query(
             user_query=message.text,
-            chat_id=thinking_msg.chat.id,
-            message_id=thinking_msg.message_id,
+            chat_id=message.chat.id,
             bot=message.bot,
             state=state,
             history=history,
@@ -214,7 +201,6 @@ async def handle_text_message(message: Message, state: FSMContext) -> None:
 async def _process_ai_query(
     user_query: str,
     chat_id: int,
-    message_id: int,
     bot: object,
     state: FSMContext,
     history: list[dict[str, str]],
@@ -222,7 +208,7 @@ async def _process_ai_query(
     telegram_id: int,
     username: str | None,
 ) -> None:
-    """Фоновая задача: вызов сервиса ИИ → Редактирование сообщения.
+    """Фоновая задача: вызов сервиса ИИ → отправка нового сообщения.
 
     Вынесена из хендлера, чтобы не блокировать event loop.
     """
@@ -267,12 +253,6 @@ async def _process_ai_query(
         _TG_CAPTION_MAX_LEN = 1024
         answer = ai_response.text
 
-        # Удаляем сообщение «Думаю...» — оно заменяется фото
-        try:
-            await bot.delete_message(chat_id=chat_id, message_id=message_id)
-        except Exception:
-            pass  # Не критично, если не удалось удалить
-
         if len(answer) <= _TG_CAPTION_MAX_LEN:
             # Ответ помещается в подпись к фото
             await bot.send_photo(
@@ -304,11 +284,6 @@ async def _process_ai_query(
         _TG_CAPTION_MAX_LEN = 1024
         answer = ai_response.text
 
-        try:
-            await bot.delete_message(chat_id=chat_id, message_id=message_id)
-        except Exception:
-            pass
-
         if len(answer) <= _TG_CAPTION_MAX_LEN:
             await bot.send_document(
                 chat_id=chat_id,
@@ -339,40 +314,8 @@ async def _process_ai_query(
             answer = answer[: _TG_MSG_MAX_LEN - 30] + "\n\n⚠️ <i>Ответ обрезан.</i>"
 
         try:
-            await bot.edit_message_text(
-                text=answer,
-                chat_id=chat_id,
-                message_id=message_id,
-            )
+            await bot.send_message(chat_id=chat_id, text=answer)
         except Exception:
-            await _edit_with_error(bot, chat_id, message_id, "⚠️ Ошибка при отправке сообщения.")
+            logger.exception("Ошибка при отправке сообщения: chat=%d", chat_id)
 
 
-async def _edit_with_error(
-    bot: object,
-    chat_id: int,
-    message_id: int,
-    error_text: str,
-) -> None:
-    """Безопасно редактировать сообщение на текст ошибки.
-
-    Перехватывает исключения Telegram API, чтобы фоновая задача
-    не падала с необработанной ошибкой.
-    """
-    from aiogram import Bot
-
-    if not isinstance(bot, Bot):
-        return
-
-    try:
-        await bot.edit_message_text(
-            text=error_text,
-            chat_id=chat_id,
-            message_id=message_id,
-        )
-    except Exception:
-        logger.exception(
-            "Не удалось отредактировать сообщение об ошибке: chat=%d, msg=%d",
-            chat_id,
-            message_id,
-        )
