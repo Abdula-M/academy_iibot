@@ -395,7 +395,7 @@ async def get_vacancy_applications(
             VacancyApplication.created_at,
             VacancyApplication.is_read,
         )
-        .join(User, VacancyApplication.user_id == User.id)
+        .outerjoin(User, VacancyApplication.user_id == User.id)
         .order_by(VacancyApplication.created_at.desc())
         .offset(offset)
         .limit(limit)

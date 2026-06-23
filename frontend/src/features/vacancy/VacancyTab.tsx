@@ -31,8 +31,8 @@ const VacancyRow = React.memo<{
                 {app.platform}
             </span>
         </td>
-        <td>{app.username}</td>
-        <td className="vacancy-preview">{app.application_text.substring(0, 120)}</td>
+        <td>{app.username || 'Без имени'}</td>
+        <td className="vacancy-preview">{(app.application_text || '').substring(0, 120)}</td>
     </tr>
 ));
 
