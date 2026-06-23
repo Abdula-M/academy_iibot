@@ -15,7 +15,6 @@ export const useVacancies = () => {
             const data = await apiFetch<PaginatedResponse<VacancyApplication>>(
                 `/vacancy-applications?offset=0&limit=${PAGE_SIZE}`,
             );
-            console.log("Vacancy API Response:", data);
             const items = Array.isArray(data) ? data : (data.items ?? []);
             const count = Array.isArray(data) ? data.length : (data.total ?? 0);
             setVacancies(items);

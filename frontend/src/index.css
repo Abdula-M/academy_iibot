@@ -605,7 +605,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 24px;
-            display: none;
+            display: block;
         }
         .vacancy-container.visible { display: block; }
         .vacancy-table {
