@@ -5,6 +5,7 @@ import type { VacancyApplication } from '../../shared/types';
 
 interface VacancyTabProps {
     vacancies: VacancyApplication[];
+    loading: boolean;
     hasMore: boolean;
     loadingMore: boolean;
     onOpenVacancy: (app: VacancyApplication) => void;
@@ -39,6 +40,7 @@ VacancyRow.displayName = 'VacancyRow';
 
 export const VacancyTab = React.memo<VacancyTabProps>(({
     vacancies,
+    loading,
     hasMore,
     loadingMore,
     onOpenVacancy,
@@ -55,8 +57,10 @@ export const VacancyTab = React.memo<VacancyTabProps>(({
                 </tr>
             </thead>
             <tbody>
-                {vacancies.length === 0 ? (
+                {loading ? (
                     <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>Загрузка...</td></tr>
+                ) : vacancies.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>Нет данных</td></tr>
                 ) : (
                     vacancies.map(app => (
                         <VacancyRow key={app.id} app={app} onOpen={onOpenVacancy} />

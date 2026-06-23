@@ -22,7 +22,7 @@ function App() {
     const { stats, lastUpdate, reloadStats } = useStats();
     const { users, hasMore: usersHasMore, loadingMore: usersLoadingMore, reloadUsers, loadMore: loadMoreUsers } = useUsers();
     const { messages, loading: chatLoading, loadingOlder, hasOlder, reloadMessages, loadOlder } = useChat(selectedUser ? selectedUser.telegram_id : null);
-    const { vacancies, hasMore: vacanciesHasMore, loadingMore: vacanciesLoadingMore, loadMore: loadMoreVacancies, markAsRead } = useVacancies();
+    const { vacancies, loading: vacanciesLoading, hasMore: vacanciesHasMore, loadingMore: vacanciesLoadingMore, loadMore: loadMoreVacancies, markAsRead } = useVacancies();
     const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
 
     React.useEffect(() => {
@@ -164,6 +164,7 @@ function App() {
             <div style={{ display: currentTab === 'vacancy' ? 'block' : 'none' }}>
                 <VacancyTab
                     vacancies={vacancies}
+                    loading={vacanciesLoading}
                     hasMore={vacanciesHasMore}
                     loadingMore={vacanciesLoadingMore}
                     onOpenVacancy={handleOpenVacancy}
