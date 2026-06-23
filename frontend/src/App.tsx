@@ -22,7 +22,7 @@ function App() {
     const { stats, lastUpdate, reloadStats } = useStats();
     const { users, hasMore: usersHasMore, loadingMore: usersLoadingMore, reloadUsers, loadMore: loadMoreUsers } = useUsers();
     const { messages, loading: chatLoading, loadingOlder, hasOlder, reloadMessages, loadOlder } = useChat(selectedUser ? selectedUser.telegram_id : null);
-    const { vacancies, loading: vacanciesLoading, hasMore: vacanciesHasMore, loadingMore: vacanciesLoadingMore, loadMore: loadMoreVacancies, markAsRead } = useVacancies();
+    const { vacancies, loading: vacanciesLoading, hasMore: vacanciesHasMore, loadingMore: vacanciesLoadingMore, reloadVacancies, loadMore: loadMoreVacancies, markAsRead } = useVacancies();
     const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
 
     React.useEffect(() => {
@@ -31,6 +31,12 @@ function App() {
         const id = setInterval(loadStatus, interval);
         return () => clearInterval(id);
     }, [waStatus]);
+
+    React.useEffect(() => {
+        if (currentTab === 'vacancy') {
+            reloadVacancies();
+        }
+    }, [currentTab, reloadVacancies]);
 
     const handleSelectUser = useCallback((user: User) => {
         setSelectedUser(user);
