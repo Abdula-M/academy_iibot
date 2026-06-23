@@ -206,13 +206,22 @@ async def get_recent_messages(
     ]
 
 
-async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
+async def get_users_list(
+    session: AsyncSession,
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, object]:
     """Получить список пользователей с последним сообщением и счётчиком.
 
+    Args:
+        session: Активная асинхронная сессия.
+        offset: Смещение для пагинации.
+        limit: Максимальное количество записей.
+
     Returns:
-        Список словарей: telegram_id, username, last_question, last_time, msg_count.
+        Словарь: items (список пользователей), total (общее количество).
     """
-    # Подзапрос: последнее сообщение каждого пользователя
+    # Подзапрос: агрегаты по каждому пользователю
     last_msg_subq = (
         select(
             Message.telegram_id,
@@ -223,6 +232,27 @@ async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
         .subquery()
     )
 
+    # Подзапрос: последний вопрос каждого пользователя (убирает N+1)
+    last_question_subq = (
+        select(
+            Message.telegram_id,
+            Message.question.label("last_question"),
+        )
+        .distinct(Message.telegram_id)
+        .order_by(Message.telegram_id, Message.created_at.desc())
+        .subquery()
+    )
+
+    # Общее количество пользователей с сообщениями
+    count_stmt = (
+        select(func.count())
+        .select_from(User)
+        .join(last_msg_subq, User.telegram_id == last_msg_subq.c.telegram_id)
+    )
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # Основной запрос с пагинацией
     stmt = (
         select(
             User.telegram_id,
@@ -230,26 +260,22 @@ async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
             User.platform,
             last_msg_subq.c.last_time,
             last_msg_subq.c.msg_count,
+            last_question_subq.c.last_question,
         )
         .join(last_msg_subq, User.telegram_id == last_msg_subq.c.telegram_id)
+        .outerjoin(last_question_subq, User.telegram_id == last_question_subq.c.telegram_id)
         .order_by(last_msg_subq.c.last_time.desc())
+        .offset(offset)
+        .limit(limit)
     )
 
     result = await session.execute(stmt)
     rows = result.all()
 
-    # Получаем последний вопрос для каждого
-    users_data: list[dict[str, object]] = []
+    items: list[dict[str, object]] = []
     for row in rows:
-        last_q_result = await session.execute(
-            select(Message.question)
-            .where(Message.telegram_id == row.telegram_id)
-            .order_by(Message.created_at.desc())
-            .limit(1),
-        )
-        last_question = last_q_result.scalar() or ""
-
-        users_data.append({
+        last_question = row.last_question or ""
+        items.append({
             "telegram_id": row.telegram_id,
             "username": row.username or f"id:{row.telegram_id}",
             "platform": row.platform or "telegram",
@@ -258,42 +284,57 @@ async def get_users_list(session: AsyncSession) -> list[dict[str, object]]:
             "msg_count": row.msg_count or 0,
         })
 
-    return users_data
+    return {"items": items, "total": total}
 
 
 async def get_messages_by_user(
     session: AsyncSession,
     telegram_id: int,
-    limit: int = 200,
-) -> list[dict[str, str]]:
-    """Получить историю диалога конкретного пользователя.
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Получить историю диалога конкретного пользователя с пагинацией.
 
     Args:
         session: Активная асинхронная сессия.
         telegram_id: Telegram ID пользователя.
+        offset: Смещение от конца (0 = последние сообщения).
         limit: Максимальное количество сообщений.
 
     Returns:
-        Список словарей: question, answer, created_at (в хронологическом порядке).
+        Словарь: items (список сообщений в хронологическом порядке), total.
     """
+    # Общее количество сообщений пользователя
+    count_stmt = (
+        select(func.count(Message.id))
+        .where(Message.telegram_id == telegram_id)
+    )
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # Берём последние сообщения с учётом offset
     stmt = (
-        select(Message.question, Message.answer, Message.created_at)
+        select(Message.id, Message.question, Message.answer, Message.created_at)
         .where(Message.telegram_id == telegram_id)
         .order_by(Message.created_at.desc())
+        .offset(offset)
         .limit(limit)
     )
 
     result = await session.execute(stmt)
-    rows = result.all()[::-1]
+    rows = result.all()[::-1]  # Разворачиваем в хронологический порядок
 
-    return [
+    items = [
         {
+            "id": row.id,
             "question": row.question,
             "answer": row.answer,
             "created_at": row.created_at.isoformat() if row.created_at else "",
         }
         for row in rows
     ]
+
+    return {"items": items, "total": total}
 
 
 # ── Заявки на вакансии ───────────────────────────────────────
@@ -326,17 +367,24 @@ async def save_vacancy_application(
 
 async def get_vacancy_applications(
     session: AsyncSession,
-    limit: int = 100,
-) -> list[dict[str, str]]:
-    """Получить список заявок на вакансии для дашборда.
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Получить список заявок на вакансии для дашборда с пагинацией.
 
     Args:
         session: Активная асинхронная сессия SQLAlchemy.
+        offset: Смещение для пагинации.
         limit: Максимальное количество записей.
 
     Returns:
-        Список словарей с полями: username, platform, application_text, created_at.
+        Словарь: items (список заявок), total (общее количество).
     """
+    # Общее количество заявок
+    count_stmt = select(func.count(VacancyApplication.id))
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar() or 0
+
     stmt = (
         select(
             VacancyApplication.id,
@@ -349,13 +397,14 @@ async def get_vacancy_applications(
         )
         .join(User, VacancyApplication.user_id == User.id)
         .order_by(VacancyApplication.created_at.desc())
+        .offset(offset)
         .limit(limit)
     )
 
     result = await session.execute(stmt)
     rows = result.all()
 
-    return [
+    items = [
         {
             "id": row.id,
             "username": row.username or f"id:{row.platform_user_id}",
@@ -366,6 +415,8 @@ async def get_vacancy_applications(
         }
         for row in rows
     ]
+
+    return {"items": items, "total": total}
 
 
 async def get_vacancy_application(session: AsyncSession, application_id: int):

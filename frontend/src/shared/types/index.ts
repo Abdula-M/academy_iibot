@@ -8,6 +8,7 @@ export interface User {
 }
 
 export interface Message {
+    id: number;
     question: string;
     answer: string;
     created_at: string;
@@ -27,4 +28,9 @@ export interface Stats {
     today_users: number;
     today_messages: number;
     unread_applications: number;
+}
+
+export interface PaginatedResponse<T> {
+    items: T[];
+    total: number;
 }

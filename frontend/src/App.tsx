@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useStats } from './features/stats/useStats';
 import { useUsers } from './features/users/useUsers';
 import { useChat } from './features/chat/useChat';
@@ -6,8 +6,9 @@ import { useVacancies } from './features/vacancy/useVacancies';
 import { useWhatsApp } from './features/whatsapp/useWhatsApp';
 import { WhatsAppModal } from './features/whatsapp/WhatsAppModal';
 import { VacancyModal } from './features/vacancy/VacancyModal';
-import { getPlatformIcon } from './shared/ui/Icons';
-import { formatDate, formatTime, formatBotAnswer } from './shared/utils/date';
+import { UserList } from './features/users/UserList';
+import { ChatArea } from './features/chat/ChatArea';
+import { VacancyTab } from './features/vacancy/VacancyTab';
 import type { User, VacancyApplication } from './shared/types';
 
 import QRCode from 'react-qr-code';
@@ -19,48 +20,49 @@ function App() {
     const [selectedVacancy, setSelectedVacancy] = useState<VacancyApplication | null>(null);
 
     const { stats, lastUpdate, reloadStats } = useStats();
-    const { users, reloadUsers } = useUsers();
-    const { messages, loading: chatLoading, reloadMessages } = useChat(selectedUser ? selectedUser.telegram_id : null);
-    const { vacancies, markAsRead } = useVacancies();
+    const { users, hasMore: usersHasMore, loadingMore: usersLoadingMore, reloadUsers, loadMore: loadMoreUsers } = useUsers();
+    const { messages, loading: chatLoading, loadingOlder, hasOlder, reloadMessages, loadOlder } = useChat(selectedUser ? selectedUser.telegram_id : null);
+    const { vacancies, hasMore: vacanciesHasMore, loadingMore: vacanciesLoadingMore, loadMore: loadMoreVacancies, markAsRead } = useVacancies();
     const { status: waStatus, qrCode, loadStatus } = useWhatsApp();
-
-    const messagesEndRef = React.useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-        if (messages.length === 0) return;
-
-        if (selectedUser && selectedUser.msg_count > 0) {
-            const firstUnreadEl = document.getElementById('first-unread-message');
-            if (firstUnreadEl) {
-                firstUnreadEl.scrollIntoView({ behavior: 'auto' });
-                return;
-            }
-        }
-
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-    }, [messages]);
 
     React.useEffect(() => {
         loadStatus();
-        const id = setInterval(loadStatus, 5000);
+        const interval = waStatus.includes('подключен') ? 30000 : 5000;
+        const id = setInterval(loadStatus, interval);
         return () => clearInterval(id);
-    }, []);
+    }, [waStatus]);
 
-    const handleSelectUser = (user: User) => {
+    const handleSelectUser = useCallback((user: User) => {
         setSelectedUser(user);
         reloadMessages().then(() => {
             reloadUsers();
         });
-    };
+    }, [reloadMessages, reloadUsers]);
 
-    const handleOpenVacancy = (app: VacancyApplication) => {
+    const handleBack = useCallback(() => {
+        setSelectedUser(null);
+    }, []);
+
+    const handleOpenVacancy = useCallback((app: VacancyApplication) => {
         setSelectedVacancy(app);
         if (!app.is_read) {
             markAsRead(app.id).then(() => {
                 reloadStats();
             });
         }
-    };
+    }, [markAsRead, reloadStats]);
+
+    const handleCloseVacancy = useCallback(() => {
+        setSelectedVacancy(null);
+    }, []);
+
+    const handleOpenWaModal = useCallback(() => {
+        setIsWaModalOpen(true);
+    }, []);
+
+    const handleCloseWaModal = useCallback(() => {
+        setIsWaModalOpen(false);
+    }, []);
 
     return (
         <div id="app-root" data-theme="dark">
@@ -110,7 +112,7 @@ function App() {
                             alignItems: 'center',
                             gap: 12
                         }} 
-                        onClick={() => setIsWaModalOpen(true)}
+                        onClick={handleOpenWaModal}
                     >
                         {qrCode ? (
                             <>
@@ -140,127 +142,37 @@ function App() {
             </header>
 
             <main className={`app-container ${selectedUser ? 'chat-active' : ''}`} style={{ display: currentTab === 'chat' ? 'flex' : 'none' }}>
-                <aside className="sidebar">
-                    <div className="users-list">
-                        {users.length === 0 ? (
-                            <div className="empty-state" style={{ padding: 20, fontSize: 13 }}>Нет данных</div>
-                        ) : (
-                            users.map(user => (
-                                <div 
-                                    key={user.telegram_id} 
-                                    className={`user-item ${selectedUser?.telegram_id === user.telegram_id ? 'active' : ''}`}
-                                    onClick={() => handleSelectUser(user)}
-                                >
-                                    <div className="user-header">
-                                        <div className="user-name">
-                                            {getPlatformIcon(user.platform || 'telegram')}
-                                            @{user.username}
-                                        </div>
-                                        <div className="user-time">{formatDate(user.last_time)}</div>
-                                    </div>
-                                    <div className="user-preview">{user.last_question}</div>
-                                    {user.msg_count > 0 && <div className="user-badge">{user.msg_count}</div>}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </aside>
-                
-                <div className="chat-area">
-                    {selectedUser ? (
-                        <>
-                            <div className="chat-header">
-                                <button className="mobile-back-btn" onClick={() => setSelectedUser(null)}>‹</button>
-                                <div>
-                                    <div className="chat-header-title">
-                                        {getPlatformIcon(selectedUser.platform || 'telegram')}
-                                        <span style={{ marginLeft: 6 }}>@{selectedUser.username}</span>
-                                    </div>
-                                    <div className="chat-header-sub">{selectedUser.platform || 'telegram'} · ID: {selectedUser.telegram_id}</div>
-                                </div>
-                            </div>
-                            <div className="chat-messages">
-                                {chatLoading ? (
-                                    <div className="loading"><div className="spinner"></div></div>
-                                ) : messages.length === 0 ? (
-                                    <div className="empty-state">Нет сообщений</div>
-                                ) : (
-                                    messages.map((msg, idx) => {
-                                        const prevMsgDate = idx > 0 ? new Date(messages[idx - 1].created_at).toDateString() : null;
-                                        const msgDate = new Date(msg.created_at).toDateString();
-                                        const showDate = prevMsgDate !== msgDate;
-                                        let displayDate = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-                                        const today = new Date().toDateString();
-                                        const yesterday = new Date(Date.now() - 86400000).toDateString();
-                                        if (msgDate === today) displayDate = 'Сегодня';
-                                        else if (msgDate === yesterday) displayDate = 'Вчера';
-
-                                        const isFirstUnread = selectedUser && selectedUser.msg_count > 0 && idx === Math.max(0, messages.length - selectedUser.msg_count);
-                                        return (
-                                            <React.Fragment key={idx}>
-                                                {isFirstUnread && <div id="first-unread-message" />}
-                                                {showDate && <div className="date-divider"><span>{displayDate}</span></div>}
-                                                <div className="msg-wrapper user">
-                                                    <div className="msg-bubble">{msg.question}</div>
-                                                    <div className="msg-time">{formatTime(msg.created_at)}</div>
-                                                </div>
-                                                <div className="msg-wrapper bot">
-                                                    <div className="msg-bubble" dangerouslySetInnerHTML={{ __html: formatBotAnswer(msg.answer) }} />
-                                                    <div className="msg-time">Ассистент</div>
-                                                </div>
-                                            </React.Fragment>
-                                        );
-                                    })
-                                )}
-                                <div ref={messagesEndRef} />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="empty-state">
-                            <div className="icon">
-                                <img src="/logo.png" alt="logo" style={{ width: 80, height: 80, borderRadius: 20, opacity: 0.5, filter: 'drop-shadow(0 0 20px rgba(59,130,246,0.3))' }} />
-                            </div>
-                            <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 8, marginTop: 16 }}>Выберите диалог</div>
-                            <div style={{ fontSize: 14 }}>чтобы просмотреть историю сообщений</div>
-                        </div>
-                    )}
-                </div>
+                <UserList
+                    users={users}
+                    selectedUser={selectedUser}
+                    hasMore={usersHasMore}
+                    loadingMore={usersLoadingMore}
+                    onSelectUser={handleSelectUser}
+                    onLoadMore={loadMoreUsers}
+                />
+                <ChatArea
+                    selectedUser={selectedUser}
+                    messages={messages}
+                    loading={chatLoading}
+                    loadingOlder={loadingOlder}
+                    hasOlder={hasOlder}
+                    onBack={handleBack}
+                    onLoadOlder={loadOlder}
+                />
             </main>
 
-            <div className="vacancy-container" style={{ display: currentTab === 'vacancy' ? 'block' : 'none' }}>
-                <table className="vacancy-table">
-                    <thead>
-                        <tr>
-                            <th>Дата</th>
-                            <th>Платформа</th>
-                            <th>Пользователь</th>
-                            <th>Содержание заявки</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {vacancies.length === 0 ? (
-                            <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>Загрузка...</td></tr>
-                        ) : (
-                            vacancies.map(app => (
-                                <tr key={app.id} onClick={() => handleOpenVacancy(app)} style={{ cursor: 'pointer', fontWeight: app.is_read ? 'normal' : 'bold', background: app.is_read ? 'transparent' : 'rgba(255,255,255,0.05)' }}>
-                                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(app.created_at)}</td>
-                                    <td>
-                                        <span className={`platform-badge ${app.platform}`}>
-                                            {getPlatformIcon(app.platform)}
-                                            {app.platform}
-                                        </span>
-                                    </td>
-                                    <td>{app.username}</td>
-                                    <td className="vacancy-preview">{app.application_text.substring(0, 120)}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            <div style={{ display: currentTab === 'vacancy' ? 'block' : 'none' }}>
+                <VacancyTab
+                    vacancies={vacancies}
+                    hasMore={vacanciesHasMore}
+                    loadingMore={vacanciesLoadingMore}
+                    onOpenVacancy={handleOpenVacancy}
+                    onLoadMore={loadMoreVacancies}
+                />
             </div>
 
-            <WhatsAppModal isOpen={isWaModalOpen} onClose={() => setIsWaModalOpen(false)} />
-            <VacancyModal application={selectedVacancy} onClose={() => setSelectedVacancy(null)} />
+            <WhatsAppModal isOpen={isWaModalOpen} onClose={handleCloseWaModal} />
+            <VacancyModal application={selectedVacancy} onClose={handleCloseVacancy} />
         </div>
     );
 }

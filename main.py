@@ -154,26 +154,37 @@ async def api_messages() -> list[dict[str, str]]:
 
 
 @app.get("/api/users")
-async def api_users() -> list[dict[str, object]]:
-    """Список пользователей с последним сообщением для сайдбара."""
+async def api_users(
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Список пользователей с пагинацией для сайдбара."""
     async with async_session_factory() as session:
-        return await get_users_list(session)
+        return await get_users_list(session, offset=offset, limit=limit)
 
 
 @app.get("/api/messages/{telegram_id}")
-async def api_messages_user(telegram_id: int) -> list[dict[str, str]]:
-    """История переписки с конкретным пользователем."""
+async def api_messages_user(
+    telegram_id: int,
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, object]:
+    """История переписки с конкретным пользователем (с пагинацией)."""
     async with async_session_factory() as session:
         # Помечаем сообщения как прочитанные при открытии диалога
-        await mark_messages_read(session, telegram_id)
-        return await get_messages_by_user(session, telegram_id=telegram_id)
+        if offset == 0:
+            await mark_messages_read(session, telegram_id)
+        return await get_messages_by_user(session, telegram_id=telegram_id, offset=offset, limit=limit)
 
 
 @app.get("/api/vacancy-applications")
-async def api_vacancy_applications() -> list[dict[str, object]]:
-    """Получить список заявок на вакансии."""
+async def api_vacancy_applications(
+    offset: int = 0,
+    limit: int = 50,
+) -> dict[str, object]:
+    """Получить список заявок на вакансии с пагинацией."""
     async with async_session_factory() as session:
-        return await get_vacancy_applications(session)
+        return await get_vacancy_applications(session, offset=offset, limit=limit)
 
 
 @app.post("/api/vacancy-applications/{application_id}/read")
