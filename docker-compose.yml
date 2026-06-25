@@ -90,7 +90,7 @@ services:
         --maxmemory-policy allkeys-lru
         --appendonly yes
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
