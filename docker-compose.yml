@@ -150,7 +150,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 128M
   caddy:
     image: caddy:2-alpine
     container_name: ai-bot-caddy
@@ -167,7 +167,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 128M
 
 # ── Volumes ──────────────────────────────────────────────────
 volumes:
