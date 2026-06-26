@@ -1,4 +1,4 @@
-http://academy-skfo.online, http://178.62.255.40 {
+academy-skfo.online {
     # API endpoints
     handle /api/* {
         reverse_proxy bot:8000
