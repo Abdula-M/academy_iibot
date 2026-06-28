@@ -1,4 +1,4 @@
-academy-skfo.online {
+academy-skfo.online, 178.62.255.40.nip.io {
     # API endpoints
     handle /api/* {
         reverse_proxy bot:8000
