@@ -59,9 +59,9 @@ deploy_production:
     - echo "📋 Статус контейнеров..."
     - ssh $SERVER_USER@$SERVER_HOST "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 
-    # --- Шаг 7: Проверяем что нет упавших контейнеров ---
-    - echo "🔍 Проверяем что нет упавших контейнеров..."
-    - ssh $SERVER_USER@$SERVER_HOST "test $(docker ps -q --filter 'name=ai-bot' --filter 'status=running' | wc -l) -ge 1 || (echo '❌ Контейнер бота не запущен!' && exit 1)"
+    # --- Шаг 7: Проверяем что контейнер бота запущен ---
+    - echo "🔍 Проверяем что контейнер бота запущен..."
+    - ssh $SERVER_USER@$SERVER_HOST "docker ps --filter name=ai-bot --filter status=running --format '{{.Names}}' | grep -q ai-bot || (echo '❌ Контейнер бота не запущен!' && exit 1)"
 
     - echo "✅ Деплой завершён, все проверки пройдены!"
   only:
