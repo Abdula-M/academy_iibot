@@ -11,8 +11,6 @@ import logging
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
-from pathlib import Path
-
 from aiogram.types import Update
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware

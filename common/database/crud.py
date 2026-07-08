@@ -141,7 +141,7 @@ async def mark_messages_read(session: AsyncSession, telegram_id: int) -> None:
     stmt = (
         update(Message)
         .where(Message.telegram_id == telegram_id)
-        .where(Message.is_read == False)
+        .where(Message.is_read.is_(False))
         .values(is_read=True)
     )
     await session.execute(stmt)
@@ -161,7 +161,7 @@ async def mark_vacancy_application_read(session: AsyncSession, application_id: i
 
 async def get_unread_applications_count(session: AsyncSession) -> int:
     """Возвращает количество непрочитанных заявок на вакансию."""
-    stmt = select(func.count(VacancyApplication.id)).where(VacancyApplication.is_read == False)
+    stmt = select(func.count(VacancyApplication.id)).where(VacancyApplication.is_read.is_(False))
     result = await session.execute(stmt)
     return result.scalar() or 0
 
@@ -226,7 +226,7 @@ async def get_users_list(
         select(
             Message.telegram_id,
             func.max(Message.created_at).label("last_time"),
-            func.sum(case((Message.is_read == False, 1), else_=0)).label("msg_count"),
+            func.sum(case((Message.is_read.is_(False), 1), else_=0)).label("msg_count"),
         )
         .group_by(Message.telegram_id)
         .subquery()

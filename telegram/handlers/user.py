@@ -10,16 +10,14 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
-import re
 
 from aiogram import F, Router
-from aiogram.enums import ChatAction
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, FSInputFile
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from common.database.crud import add_user, log_message, save_vacancy_application
+from common.database.crud import add_user
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
 from common.services.speech import transcribe_audio

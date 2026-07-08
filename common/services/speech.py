@@ -1,7 +1,5 @@
 import logging
-from pathlib import Path
 
-import httpx
 from openai import AsyncOpenAI
 
 from common.core.config import settings
