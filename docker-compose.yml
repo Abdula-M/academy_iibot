@@ -122,6 +122,7 @@ services:
       - "3005:3000"
     volumes:
       - whatsapp_baileys_data:/app/.baileys_auth
+      - ./data:/app/data
     networks:
       - bot-network
     logging:
