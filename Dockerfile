@@ -52,7 +52,7 @@ COPY telegram/ ./telegram/
 COPY whatsapp/ ./whatsapp/
 COPY instagram/ ./instagram/
 COPY max_messenger/ ./max_messenger/
-COPY data/ ./data/
+
 COPY main.py .
 
 # Установка прав для non-root пользователя

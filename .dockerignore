@@ -20,6 +20,7 @@ venv
 
 # Data (монтируется как volume)
 chroma_data/
+data/
 
 # Docker
 Dockerfile
