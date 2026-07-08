@@ -1,12 +1,16 @@
 # ============================================================
 # GitLab CI/CD Pipeline для автодеплоя AI Bot
+#
+# Стадии:
+#   1. test   — линтер проверяет код
+#   2. deploy — деплой + проверка что всё работает
 # ============================================================
 
 stages:
   - test
   - deploy
 
-# ---- STAGE 1: Проверка кода ----
+# ---- STAGE 1: Проверка кода (линтер) ----
 lint:
   stage: test
   image: python:3.11-slim
@@ -14,21 +18,52 @@ lint:
     - pip install ruff
   script:
     - ruff check . --ignore E501 --exclude .venv,__pycache__,chroma_data
-  allow_failure: true
+  # Если линтер нашёл ошибки — деплой ЗАБЛОКИРОВАН
+  allow_failure: false
 
-# ---- STAGE 2: Деплой на сервер ----
+# ---- STAGE 2: Деплой + Health Check ----
 deploy_production:
   stage: deploy
   image: alpine:latest
   before_script:
-    - apk add --no-cache openssh-client
+    - apk add --no-cache openssh-client curl
     - eval $(ssh-agent -s)
     - chmod 400 "$SSH_PRIVATE_KEY"
     - ssh-add "$SSH_PRIVATE_KEY"
     - mkdir -p ~/.ssh
     - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config'
   script:
-    - ssh $SERVER_USER@$SERVER_HOST "cd /root/academy_iibot && git pull gitlab main && docker compose up -d --build && sleep 10 && docker ps"
+    # --- Шаг 1: Обновляем код на сервере ---
+    - echo "📥 Обновляем код на сервере..."
+    - ssh $SERVER_USER@$SERVER_HOST "cd /root/academy_iibot && git pull gitlab main"
+
+    # --- Шаг 2: Собираем Docker-образы (без запуска) ---
+    # Если Dockerfile сломан — пайплайн упадёт ЗДЕСЬ, до перезапуска
+    - echo "🐳 Собираем Docker-образы..."
+    - ssh $SERVER_USER@$SERVER_HOST "cd /root/academy_iibot && docker compose build"
+
+    # --- Шаг 3: Запускаем контейнеры ---
+    - echo "🚀 Запускаем обновлённые контейнеры..."
+    - ssh $SERVER_USER@$SERVER_HOST "cd /root/academy_iibot && docker compose up -d"
+
+    # --- Шаг 4: Ждём запуска ---
+    - echo "⏳ Ждём 15 секунд для запуска сервисов..."
+    - sleep 15
+
+    # --- Шаг 5: Health Check (проверка DevOps) ---
+    # Проверяем что бот реально отвечает на запросы
+    - echo "🏥 Проверяем health endpoint..."
+    - ssh $SERVER_USER@$SERVER_HOST "curl -sf http://localhost:8000/health || exit 1"
+
+    # --- Шаг 6: Проверяем что все контейнеры живы ---
+    - echo "📋 Статус контейнеров..."
+    - ssh $SERVER_USER@$SERVER_HOST "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+
+    # --- Шаг 7: Проверяем что нет упавших контейнеров ---
+    - echo "🔍 Проверяем что нет упавших контейнеров..."
+    - ssh $SERVER_USER@$SERVER_HOST "test $(docker ps -q --filter 'name=ai-bot' --filter 'status=running' | wc -l) -ge 1 || (echo '❌ Контейнер бота не запущен!' && exit 1)"
+
+    - echo "✅ Деплой завершён, все проверки пройдены!"
   only:
     - main
   environment:
