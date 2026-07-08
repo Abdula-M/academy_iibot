@@ -1,98 +1,36 @@
 # ============================================================
-# GitLab CI/CD Pipeline — автоматический деплой AI Bot
-#
-# Этот файл — "рецепт" для GitLab.
-# При каждом git push GitLab читает его и выполняет инструкции.
+# GitLab CI/CD Pipeline для автодеплоя AI Bot
 # ============================================================
 
-# --- STAGES (стадии) -----------------------------------------
-# Определяем порядок шагов конвейера.
-# Они выполняются последовательно: сначала test, потом deploy.
-# Если test провалится — deploy НЕ запустится.
 stages:
   - test
   - deploy
 
-# --- VARIABLES (переменные) -----------------------------------
-# Общие настройки для всех задач.
-variables:
-  # Путь к проекту на сервере DigitalOcean
-  PROJECT_PATH: "/root/academy_iibot"
-
-# ============================================================
-# STAGE 1: TEST — Проверка кода
-# ============================================================
-# Эта задача проверяет, что код написан без ошибок.
-# Запускается на КАЖДЫЙ пуш в любую ветку.
-
+# ---- STAGE 1: Проверка кода ----
 lint:
-  stage: test                    # К какой стадии относится
-  image: python:3.11-slim       # Docker-образ, в котором запускается
-  
-  # before_script — команды для подготовки (установка инструментов)
+  stage: test
+  image: python:3.11-slim
   before_script:
-    - pip install ruff           # ruff — быстрый линтер для Python
-  
-  # script — основные команды (собственно проверка)
+    - pip install ruff
   script:
-    - echo "🔍 Проверяем код линтером..."
     - ruff check . --ignore E501 --exclude .venv,__pycache__,chroma_data
-    - echo "✅ Код чистый!"
-  
-  # allow_failure: true означает — если линтер найдёт ошибки,
-  # пайплайн всё равно продолжится (на первое время)
   allow_failure: true
 
-# ============================================================
-# STAGE 2: DEPLOY — Деплой на сервер
-# ============================================================
-# Эта задача заходит по SSH на твой DigitalOcean сервер,
-# обновляет код и перезапускает Docker-контейнеры.
-# Запускается ТОЛЬКО при пуше в ветку main.
-
+# ---- STAGE 2: Деплой на сервер ----
 deploy_production:
-  stage: deploy                  # К какой стадии относится
-  image: alpine:latest           # Лёгкий Linux-образ (нужен только SSH)
-  
-  # before_script — устанавливаем SSH-клиент
+  stage: deploy
+  image: alpine:latest
   before_script:
-    # Устанавливаем openssh для подключения к серверу
     - apk add --no-cache openssh-client
-    
-    # Настраиваем SSH-ключ (берём из переменной GitLab CI/CD)
-    # SSH_PRIVATE_KEY — это File-переменная, GitLab сам создаёт файл с ключом
     - eval $(ssh-agent -s)
     - chmod 400 "$SSH_PRIVATE_KEY"
     - ssh-add "$SSH_PRIVATE_KEY"
-    
-    # Отключаем проверку хоста (чтобы не спрашивал "trust this host?")
     - mkdir -p ~/.ssh
-    - echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-  
-  # script — основные команды деплоя
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config'
   script:
-    - echo "🚀 Начинаем деплой на сервер..."
-    
-    # Заходим по SSH на сервер и выполняем команды одной цепочкой:
-    - >
-      ssh $SERVER_USER@$SERVER_HOST
-      "cd /root/academy_iibot &&
-      echo '📥 Обновляем код из GitLab...' &&
-      git pull gitlab main &&
-      echo '🐳 Пересобираем и запускаем контейнеры...' &&
-      docker compose up -d --build &&
-      echo '⏳ Ждём 10 секунд для запуска...' &&
-      sleep 10 &&
-      echo '🏥 Проверяем что контейнеры работают...' &&
-      docker ps --format 'table {{.Names}}\t{{.Status}}' &&
-      echo '✅ Деплой завершён успешно!'"
-  
-  # only — запускать ТОЛЬКО при пуше в ветку main
-  # (если пушишь в другую ветку — деплой не произойдёт)
+    - ssh $SERVER_USER@$SERVER_HOST "cd /root/academy_iibot && git pull gitlab main && docker compose up -d --build && sleep 10 && docker ps"
   only:
     - main
-  
-  # environment — GitLab будет показывать историю деплоев
   environment:
     name: production
     url: https://academy-skfo.online
