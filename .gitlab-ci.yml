@@ -73,27 +73,19 @@ deploy_production:
   script:
     - echo "🚀 Начинаем деплой на сервер..."
     
-    # Заходим по SSH на сервер и выполняем команды:
-    - |
-      ssh $SERVER_USER@$SERVER_HOST << 'DEPLOY_SCRIPT'
-        set -e
-        echo "📂 Переходим в директорию проекта..."
-        cd /root/academy_iibot
-
-        echo "📥 Обновляем код из GitLab..."
-        git pull gitlab main
-
-        echo "🐳 Пересобираем и запускаем контейнеры..."
-        docker compose up -d --build
-
-        echo "⏳ Ждём 10 секунд для запуска..."
-        sleep 10
-
-        echo "🏥 Проверяем что контейнеры работают..."
-        docker ps --format "table {{.Names}}\t{{.Status}}"
-
-        echo "✅ Деплой завершён успешно!"
-      DEPLOY_SCRIPT
+    # Заходим по SSH на сервер и выполняем команды одной цепочкой:
+    - >
+      ssh $SERVER_USER@$SERVER_HOST
+      "cd /root/academy_iibot &&
+      echo '📥 Обновляем код из GitLab...' &&
+      git pull gitlab main &&
+      echo '🐳 Пересобираем и запускаем контейнеры...' &&
+      docker compose up -d --build &&
+      echo '⏳ Ждём 10 секунд для запуска...' &&
+      sleep 10 &&
+      echo '🏥 Проверяем что контейнеры работают...' &&
+      docker ps --format 'table {{.Names}}\t{{.Status}}' &&
+      echo '✅ Деплой завершён успешно!'"
   
   # only — запускать ТОЛЬКО при пуше в ветку main
   # (если пушишь в другую ветку — деплой не произойдёт)
