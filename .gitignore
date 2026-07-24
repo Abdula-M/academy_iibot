@@ -62,3 +62,5 @@ database/data/
 whatsapp-service/
 deploy/
 deploy_clean/
+
+voice_service/

@@ -1,0 +1,48 @@
+services:
+  voice:
+    build:
+      context: .
+      dockerfile: Dockerfile.voice
+    image: ai-bot-voice:v1
+    container_name: ai-bot-voice
+    restart: unless-stopped
+    environment:
+      - VOICE_KNOWLEDGE_FILE=/app/data/knowledge.txt
+      - VOICE_LLM_PROVIDER=${VOICE_LLM_PROVIDER:-deepseek}
+      - VOICE_DEEPSEEK_API_KEY=${VOICE_DEEPSEEK_API_KEY:-${DEEPSEEK_API_KEY:-}}
+      - VOICE_DEEPSEEK_BASE_URL=${VOICE_DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - VOICE_DEEPSEEK_MODEL=${VOICE_DEEPSEEK_MODEL:-deepseek-v4-flash}
+      - VOICE_SESSION_BACKEND=${VOICE_SESSION_BACKEND:-redis}
+      - VOICE_REDIS_URL=redis://redis:6379/1
+      - VOICE_SPEECH_PROVIDER=${VOICE_SPEECH_PROVIDER:-mock}
+      - VOICE_YANDEX_API_KEY=${VOICE_YANDEX_API_KEY:-}
+      - VOICE_YANDEX_FOLDER_ID=${VOICE_YANDEX_FOLDER_ID:-}
+      - VOICE_YANDEX_STT_LANGUAGE=${VOICE_YANDEX_STT_LANGUAGE:-ru-RU}
+      - VOICE_YANDEX_STT_MODEL=${VOICE_YANDEX_STT_MODEL:-general}
+      - VOICE_YANDEX_STT_EOU_SENSITIVITY=${VOICE_YANDEX_STT_EOU_SENSITIVITY:-high}
+      - VOICE_YANDEX_STT_MAX_PAUSE_MS=${VOICE_YANDEX_STT_MAX_PAUSE_MS:-500}
+      - VOICE_YANDEX_TTS_VOICE=${VOICE_YANDEX_TTS_VOICE:-marina}
+      - VOICE_YANDEX_TTS_ROLE=${VOICE_YANDEX_TTS_ROLE:-friendly}
+      - VOICE_YANDEX_TTS_SPEED=${VOICE_YANDEX_TTS_SPEED:-1.03}
+      - VOICE_TELEPHONY_ENABLED=${VOICE_TELEPHONY_ENABLED:-false}
+      - VOICE_TELEPHONY_USERNAME=${VOICE_TELEPHONY_USERNAME:-voice}
+      - VOICE_TELEPHONY_TOKEN=${VOICE_TELEPHONY_TOKEN:-}
+      - VOICE_TELEPHONY_TEST_MODE=${VOICE_TELEPHONY_TEST_MODE:-false}
+      - VOICE_THINKING_PROMPT_DELAY_SECONDS=${VOICE_THINKING_PROMPT_DELAY_SECONDS:-0.45}
+      - VOICE_BROWSER_TEST_ENABLED=${VOICE_BROWSER_TEST_ENABLED:-false}
+      - VOICE_BROWSER_TEST_TOKEN=${VOICE_BROWSER_TEST_TOKEN:-}
+      - VOICE_OPERATOR_NUMBER=${VOICE_OPERATOR_NUMBER:-}
+      - VOICE_DEBUG=${VOICE_DEBUG:-false}
+    ports:
+      - "127.0.0.1:${VOICE_PORT:-8100}:8100"
+    volumes:
+      - ./data:/app/data:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - bot-network
+    deploy:
+      resources:
+        limits:
+          memory: 384M

@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # ── DeepSeek LLM ──────────────────────────────────────────
     deepseek_api_key: SecretStr
     deepseek_base_url: str = "https://api.deepseek.com"
-    deepseek_model: str = "deepseek-chat"
+    deepseek_model: str = "deepseek-v4-flash"
 
     # ── Groq API (Voice) ──────────────────────────────────────
     groq_api_key: SecretStr
