@@ -7,7 +7,7 @@ CRUD-операции для работы с пользователями и с�
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select, case, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 

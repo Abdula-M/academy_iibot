@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from openai import AsyncOpenAI, APIConnectionError, APIStatusError
+from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 
 from common.core.config import settings
 

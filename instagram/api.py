@@ -1,14 +1,19 @@
 import logging
 import re
-from pathlib import Path
 import urllib.parse
+from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Request, Response, HTTPException
-from fastapi.responses import FileResponse
 import aiohttp
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
+from fastapi.responses import FileResponse
 
 from common.core.config import settings
-from common.database.crud import add_user, get_user_by_telegram_id, log_message, save_vacancy_application
+from common.database.crud import (
+    add_user,
+    get_user_by_telegram_id,
+    log_message,
+    save_vacancy_application,
+)
 from common.database.session import async_session_factory
 from common.services.bot_logic import process_ai_query
 from common.services.speech import transcribe_audio

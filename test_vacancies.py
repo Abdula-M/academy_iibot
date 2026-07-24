@@ -1,7 +1,10 @@
 import asyncio
+
 from sqlalchemy import select
-from common.database.session import async_session_factory
+
 from common.database.models import VacancyApplication
+from common.database.session import async_session_factory
+
 
 async def main():
     async with async_session_factory() as session:

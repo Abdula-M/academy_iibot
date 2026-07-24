@@ -5,11 +5,12 @@ API для интеграции с микросервисом WhatsApp.
 и отправляет ответ обратно в Node.js сервис.
 """
 
+import base64
 import logging
 import re
-import base64
-from fastapi import APIRouter, BackgroundTasks
+
 import aiohttp
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 
 from common.core.config import settings

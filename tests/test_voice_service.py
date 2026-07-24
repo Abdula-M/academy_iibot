@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
-import unittest
 import json
 import struct
+import tempfile
+import unittest
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -422,27 +422,26 @@ class VoiceBrowserTestTests(unittest.TestCase):
             agent=SlowRecordingAgent(),
             sessions=MemorySessionStore(ttl_seconds=300),
         )
-        with TestClient(app) as client:
-            with client.websocket_connect(
-                "/ws/test-call?token=browser-test-secret",
-            ) as websocket:
-                self.assertEqual(websocket.receive_json()["type"], "ready")
-                self._next_event(websocket, "audio_end")
-                websocket.send_json({"type": "audio_played"})
-                websocket.send_json(
-                    {"type": "test_transcript", "text": "Расскажите про обучение"},
-                )
-                acknowledgement = self._next_event(websocket, "audio_start")
-                self.assertIn(
-                    acknowledgement["text"],
-                    {
-                        "Сейчас уточню.",
-                        "Одну секунду, пожалуйста.",
-                        "Секунду, проверяю.",
-                    },
-                )
-                answer = self._next_event(websocket, "answer")
-                self.assertEqual(answer["text"], "Ответ внешнего ИИ.")
+        with TestClient(app) as client, client.websocket_connect(
+            "/ws/test-call?token=browser-test-secret",
+        ) as websocket:
+            self.assertEqual(websocket.receive_json()["type"], "ready")
+            self._next_event(websocket, "audio_end")
+            websocket.send_json({"type": "audio_played"})
+            websocket.send_json(
+                {"type": "test_transcript", "text": "Расскажите про обучение"},
+            )
+            acknowledgement = self._next_event(websocket, "audio_start")
+            self.assertIn(
+                acknowledgement["text"],
+                {
+                    "Сейчас уточню.",
+                    "Одну секунду, пожалуйста.",
+                    "Секунду, проверяю.",
+                },
+            )
+            answer = self._next_event(websocket, "answer")
+            self.assertEqual(answer["text"], "Ответ внешнего ИИ.")
 
     @staticmethod
     def _next_event(websocket, expected: str) -> dict[str, object]:

@@ -8,31 +8,31 @@
 
 import asyncio
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from aiogram.types import Update
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from telegram.create import bot, dp
-from telegram.handlers.user import router as user_router
-from whatsapp.api import whatsapp_router
-from instagram.api import instagram_router
-from max_messenger.api import max_router
 from common.core.config import settings
 from common.database.crud import (
     get_dashboard_stats,
     get_messages_by_user,
     get_recent_messages,
+    get_unread_applications_count,
     get_users_list,
     get_vacancy_applications,
     mark_messages_read,
     mark_vacancy_application_read,
-    get_unread_applications_count,
 )
 from common.database.models import Base
 from common.database.session import async_engine, async_session_factory
+from instagram.api import instagram_router
+from max_messenger.api import max_router
+from telegram.create import bot, dp
+from telegram.handlers.user import router as user_router
+from whatsapp.api import whatsapp_router
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,

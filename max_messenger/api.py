@@ -10,8 +10,9 @@ API для интеграции с мессенджером MAX.
 import logging
 import re
 from pathlib import Path
-from fastapi import APIRouter, BackgroundTasks, Request, Response, HTTPException
+
 import aiohttp
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 
 from common.core.config import settings
 from common.database.crud import add_user, log_message, save_vacancy_application
@@ -135,7 +136,7 @@ async def _upload_photo_to_max(photo_path: str) -> str | None:
         photo_token = None
         if "token" in result:
             photo_token = result["token"]
-        elif "photos" in result and result["photos"]:
+        elif result.get("photos"):
             photos = result["photos"]
             if isinstance(photos, dict):
                 # Берём token из первого значения словаря
